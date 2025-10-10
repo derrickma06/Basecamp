@@ -29,7 +29,7 @@
 //       <div className="hero min-h-screen">
 //         <div className="hero-content text-center">
 //           <div className="max-w-md">
-//             <h1 className="text-5xl font-bold mb-8">TripSync</h1>
+//             <h1 className="text-5xl font-bold mb-8">Basecamp</h1>
 //             <div className="card bg-base-100 shadow-xl">
 //               <div className="card-body">
 //                 <h2 className="card-title text-2xl mb-4">Backend Message</h2>
@@ -77,6 +77,12 @@ const MoneyIcon = () => (
     </svg>
 );
 
+const BasecampIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1">
+    <path d="M23.869 17.31 15.813 5.864c-0.003 -0.004 -0.006 -0.007 -0.009 -0.011a0.708 0.708 0 0 0 -0.095 -0.106q-0.009 -0.008 -0.018 -0.016a0.766 0.766 0 0 0 -0.059 -0.045l-0.003 -0.002a0.67 0.67 0 0 0 -0.069 -0.041c-0.005 -0.002 -0.01 -0.004 -0.014 -0.007a0.67 0.67 0 0 0 -0.058 -0.026q-0.01 -0.004 -0.021 -0.008a0.67 0.67 0 0 0 -0.056 -0.017q-0.011 -0.003 -0.023 -0.006a0.766 0.766 0 0 0 -0.059 -0.011c-0.007 -0.001 -0.014 -0.002 -0.021 -0.003a0.766 0.766 0 0 0 -0.081 -0.005h-6.453a0.718 0.718 0 0 0 -0.587 0.305L0.131 17.31A0.718 0.718 0 0 0 0.718 18.441h22.564a0.718 0.718 0 0 0 0.587 -1.131m-9.361 -0.305h-5.955l5.955 -8.461zM9.146 6.995h4.697L6.798 17.005H2.101zm6.798 10.01V8.544l5.955 8.461z"/>
+  </svg>
+);
+
 
 function App() {
   const [backendMessage, setBackendMessage] = useState('');
@@ -116,7 +122,10 @@ function App() {
       {/* Navbar */}
         <div className="navbar bg-base-100 shadow-lg">
           <div className="flex-1">
-            <a className="btn btn-ghost text-2xl font-bold">TripSync</a>
+            <a className="btn btn-ghost">
+              <BasecampIcon />
+              <span className="text-2xl font-bold ml-2">Basecamp</span>
+            </a>
           </div>
           <div className="flex-none gap-4">
             <label className="swap swap-rotate">
@@ -141,15 +150,15 @@ function App() {
         <div className="hero-content text-center text-white">
           <div className="max-w-md">
             <h1 className="mb-5 text-5xl font-bold">Plan Together. Go Together.</h1>
-            <p className="mb-5 text-lg">The ultimate app for college students to plan group trips without the hassle. Coordinate itineraries, vote on activities, and split expenses, all in one place.</p>
-            <button className="btn btn-success btn-lg">Get Started</button>
+            <p className="mb-5 text-lg">The ultimate site for college students to plan group trips without the hassle. Coordinate itineraries, vote on activities, and split expenses, all in one place.</p>
+            <button className="btn btn-accent btn-lg">Get Started</button>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
       <div className="container mx-auto px-4 py-16">
-        <h2 className="text-4xl font-bold text-center mb-12">Why TripSync?</h2>
+        <h2 className="text-4xl font-bold text-center mb-12">Why Basecamp?</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="card bg-base-100 shadow-xl text-center">
             <div className="card-body items-center">
@@ -171,7 +180,7 @@ function App() {
           </div>
           <div className="card bg-base-100 shadow-xl text-center">
             <div className="card-body items-center">
-               <div className="p-4 bg-accent rounded-full text-accent-content">
+               <div className="p-4 bg-success rounded-full text-accent-content">
                  <MoneyIcon />
                </div>
               <h3 className="card-title text-2xl mt-4">Expense Splitting</h3>

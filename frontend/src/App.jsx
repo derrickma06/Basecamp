@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 
 // SVG Icons
 const CalendarIcon = () => (
@@ -39,7 +39,213 @@ const DarkIcon = () => (
 
 const HeroImage = "https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170";
 
+// Login Page Component
+function LoginPage({ setCurrentPage, theme, toggleTheme }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [allLogins, setAllLogins] = useState([]);
+
+  // Fetch all logins for testing
+  useEffect(() => {
+    const fetchLogins = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/logins");
+        const data = await response.json();
+        setAllLogins(data.logins);
+      } catch (error) {
+        console.error("Error fetching logins:", error);
+      }
+    };
+    fetchLogins();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/logins");
+      const data = await response.json();
+
+      const match = data.logins.find(
+        (user) => user.username === username && user.password === password
+      );
+
+      if (match) {
+        setMessage("✅ Login successful!");
+      } else {
+        setMessage("❌ Invalid username or password.");
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("⚠️ Error connecting to server.");
+    }
+  };
+
+  return (
+    <div data-theme={theme} className="min-h-screen bg-base-200">
+      <div className="navbar bg-base-100 shadow-lg">
+        <button onClick={() => setCurrentPage("home")} className="btn btn-ghost">
+          ← Back to Home
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center justify-center h-screen space-y-6">
+        {/* Box showing all logins for testing */}
+        <div className="bg-base-100 p-4 rounded-lg shadow-md w-96">
+          <h2 className="text-xl font-bold mb-2 text-center">Current Logins</h2>
+          {allLogins.length > 0 ? (
+            <ul className="list-disc list-inside">
+              {allLogins.map((user, index) => (
+                <li key={index}>
+                  {user.username} - {user.password}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-center text-gray-500">No logins found.</p>
+          )}
+        </div>
+
+        {/* Login form */}
+        <div className="bg-base-100 p-8 rounded-lg shadow-md w-96">
+          <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+          <div className="mb-4">
+            <label className="block mb-1">Username</label>
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-1">Password</label>
+            <input
+              type="password"
+              className="input input-bordered w-full"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+            />
+          </div>
+          <button onClick={handleLogin} className="btn btn-primary w-full mb-4">
+            Sign In
+          </button>
+          {message && (
+            <p
+              className={`text-center font-semibold ${
+                message.includes("successful") ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {message}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Signup Page Component
+function SignupPage({ setCurrentPage, theme, toggleTheme }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleSignup = async () => {
+    if (!username || !password) {
+      setMessage("⚠️ Please enter both username and password.");
+      return;
+    }
+
+    try {
+      // 1. Fetch existing logins
+      const response = await fetch("http://localhost:8000/logins");
+      const data = await response.json();
+
+      const existingUser = data.logins.find((user) => user.username === username);
+
+      if (existingUser) {
+        setMessage("❌ Username already exists. Please choose another.");
+        return;
+      }
+
+      // 2. Add new user via POST request
+      const postResponse = await fetch("http://localhost:8000/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (postResponse.ok) {
+        setMessage("✅ Signup successful!");
+        setUsername("");
+        setPassword("");
+      } else {
+        const errorData = await postResponse.json();
+        setMessage(`⚠️ Error: ${errorData.detail || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("⚠️ Could not connect to server.");
+    }
+  };
+
+  return (
+    <div data-theme={theme} className="min-h-screen bg-base-200">
+      <div className="navbar bg-base-100 shadow-lg">
+        <button onClick={() => setCurrentPage("home")} className="btn btn-ghost">
+          ← Back to Home
+        </button>
+      </div>
+
+      <div className="flex items-center justify-center h-screen">
+        <div className="bg-base-100 p-8 rounded-lg shadow-md w-96">
+          <h2 className="text-2xl font-bold mb-6 text-center">Signup</h2>
+
+          <div className="mb-4">
+            <label className="block mb-1">Username</label>
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter a username"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block mb-1">Password</label>
+            <input
+              type="password"
+              className="input input-bordered w-full"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter a password"
+            />
+          </div>
+
+          <button onClick={handleSignup} className="btn btn-primary w-full mb-4">
+            Sign Up
+          </button>
+
+          {message && (
+            <p
+              className={`text-center font-semibold ${
+                message.includes("successful") ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {message}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  const [currentPage, setCurrentPage] = useState('home');
   const [backendMessage, setBackendMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [theme, setTheme] = useState(() => {
@@ -72,6 +278,15 @@ function App() {
       });
   }, []);
 
+  //Decides which page to display
+  if (currentPage === 'login') {
+    return <LoginPage setCurrentPage={setCurrentPage} theme={theme} toggleTheme={toggleTheme} />;
+  }
+
+  if (currentPage === 'signup') {
+    return <SignupPage setCurrentPage={setCurrentPage} theme={theme} toggleTheme={toggleTheme} />;
+  }
+
   return (
     <div data-theme={theme} className="min-h-screen bg-base-200">
       {/* Navbar */}
@@ -89,8 +304,18 @@ function App() {
                 <DarkIcon />
             </label>
             <div className="flex items-center space-x-4">
-              <a className="btn btn-ghost">Log In</a>
-              <a className="btn btn-primary">Sign Up</a>
+              <button 
+                onClick={() => setCurrentPage('login')} 
+                className="btn btn-ghost"
+              >
+                Log In
+              </button>
+              <button 
+                onClick={() => setCurrentPage('signup')} 
+                className="btn btn-primary"
+              >
+                Sign Up
+              </button>
             </div>
           </div>
         </div>

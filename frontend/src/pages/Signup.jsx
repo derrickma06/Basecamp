@@ -52,9 +52,9 @@ function Signup({ setCurrentPage, theme, toggleTheme }) {
         </button>
       </div>
 
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="bg-base-100 p-8 rounded-lg shadow-md w-96">
-          <h2 className="text-2xl font-bold mb-6 text-center">Signup</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
 
           <div className="mb-4">
             <label className="block mb-1">Username</label>

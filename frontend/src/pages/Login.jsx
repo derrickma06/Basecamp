@@ -49,7 +49,7 @@ function Login({ setCurrentPage, theme, toggleTheme }) {
         </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center h-screen space-y-6">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] space-y-6">
         {/* Box showing all logins for testing */}
         <div className="bg-base-100 p-4 rounded-lg shadow-md w-96">
           <h2 className="text-xl font-bold mb-2 text-center">Current Logins</h2>
@@ -92,6 +92,14 @@ function Login({ setCurrentPage, theme, toggleTheme }) {
           <button onClick={handleLogin} className="btn btn-primary w-full mb-4">
             Sign In
           </button>
+
+          <button 
+            onClick={() => setCurrentPage("signup")} 
+            className="btn btn-link w-full"
+          >
+            Don't have an account? Sign up here
+          </button>
+
           {message && (
             <p
               className={`text-center font-semibold ${

@@ -4,7 +4,7 @@ import { CalendarIcon, VoteIcon, MoneyIcon, BasecampIcon, LightIcon, DarkIcon } 
 
 const HeroImage = "https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170";
 
-function Home({ setCurrentPage, theme, toggleTheme, backendMessage, isError }) {
+function Home({ setCurrentPage, theme, toggleTheme }) {
   return (
     <div data-theme={theme} className="min-h-screen bg-base-200">
       {/* Navbar */}
@@ -83,15 +83,6 @@ function Home({ setCurrentPage, theme, toggleTheme, backendMessage, isError }) {
           </div>
         </div>
       </div>
-      
-      {/* Backend Status Footer */}
-      <footer className="footer footer-center p-4 bg-base-300 text-base-content">
-        <div>
-          <div className={`mt-2 p-2 rounded-md text-sm font-semibold ${isError ? 'bg-error text-error-content' : 'bg-success text-success-content'}`}>
-            Backend Status: {backendMessage}
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

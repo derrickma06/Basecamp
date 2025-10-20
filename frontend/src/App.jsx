@@ -5,11 +5,34 @@ import Signup from './pages/Signup';
 import Itinerary from './pages/Itinerary';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home');
-  const [currentUser, setCurrentUser] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(() => {
+    return localStorage.getItem('currentPage') || 'home';
+  });  
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    return localStorage.getItem('currentUser') || null;
+  });  
+  
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+  
+  useEffect(() => {
+    localStorage.setItem('currentPage', currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', currentUser);
+    } else {
+      localStorage.removeItem('currentUser');
+    }
+  }, [currentUser]);
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -23,21 +46,44 @@ function App() {
 
   // Function to handle logout
   const handleLogout = () => {
-    setCurrentUser(null);
-    setCurrentPage('home');
+    if (window.confirm('Are you sure you want to log out?')) {
+      setCurrentUser(null);
+      setCurrentPage('home');
+    }
   };
 
   // Decides which page to display
   if (currentPage === 'login') {
-    return <Login setCurrentPage={setCurrentPage} theme={theme} toggleTheme={toggleTheme} onLoginSuccess={handleLogin} />;
+    return (
+      <Login 
+        setCurrentPage={setCurrentPage} 
+        theme={theme} 
+        toggleTheme={toggleTheme} 
+        onLoginSuccess={handleLogin} 
+      />
+    );
   }
   
   if (currentPage === 'signup') {
-    return <Signup setCurrentPage={setCurrentPage} theme={theme} toggleTheme={toggleTheme} />;
+    return (
+      <Signup 
+        setCurrentPage={setCurrentPage} 
+        theme={theme} 
+        toggleTheme={toggleTheme} 
+      />
+    );
   }
 
   if (currentPage === 'itinerary') {
-    return <Itinerary setCurrentPage={setCurrentPage} theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onLogout={handleLogout} />;
+    return (
+      <Itinerary 
+        setCurrentPage={setCurrentPage} 
+        theme={theme} 
+        toggleTheme={toggleTheme} 
+        currentUser={currentUser} 
+        onLogout={handleLogout} 
+      />
+    );
   }
 
   return (
@@ -46,6 +92,7 @@ function App() {
       theme={theme} 
       toggleTheme={toggleTheme}
       currentUser={currentUser}
+      onLogout={handleLogout}
     />
   );
 }

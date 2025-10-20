@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { CalendarIcon, VoteIcon, MoneyIcon, BasecampIcon, LightIcon, DarkIcon } from '../components/Icons';
 
 
 const HeroImage = "https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170";
 
-function Home({ setCurrentPage, theme, toggleTheme }) {
+function Home({ setCurrentPage, theme, toggleTheme, currentUser }) {
+  
+  const handleGetStarted = () => {
+    // If user is logged in, go to itinerary. If not, go to signup.
+    if (currentUser) {
+      setCurrentPage('itinerary');
+    } else {
+      setCurrentPage('signup');
+    }
+  };
+  
   return (
     <div data-theme={theme} className="min-h-screen bg-base-200">
       {/* Navbar */}
@@ -17,24 +27,38 @@ function Home({ setCurrentPage, theme, toggleTheme }) {
           </div>
           <div className="flex-none gap-4">
             <label className="swap swap-rotate">
-              <input type="checkbox" onClick={toggleTheme} />
+              <input type="checkbox" onClick={toggleTheme} checked={theme === 'dark'} readOnly />
                 <LightIcon />
                 <DarkIcon />
             </label>
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => setCurrentPage('login')} 
-                className="btn btn-ghost"
-              >
-                Log In
-              </button>
-              <button 
-                onClick={() => setCurrentPage('signup')} 
-                className="btn btn-primary"
-              >
-                Sign Up
-              </button>
-            </div>
+            
+            {/* Conditional Navbar Buttons */}
+            {currentUser ? (
+              <div className="flex items-center space-x-4">
+                <span className="font-semibold">Welcome, {currentUser}!</span>
+                <button 
+                  onClick={() => setCurrentPage('itinerary')} 
+                  className="btn btn-primary"
+                >
+                  My Dashboard
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={() => setCurrentPage('login')} 
+                  className="btn btn-ghost"
+                >
+                  Log In
+                </button>
+                <button 
+                  onClick={() => setCurrentPage('signup')} 
+                  className="btn btn-primary"
+                >
+                  Sign Up
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -45,7 +69,9 @@ function Home({ setCurrentPage, theme, toggleTheme }) {
           <div className="max-w-md">
             <h1 className="mb-5 text-5xl font-bold">Plan Together. Go Together.</h1>
             <p className="mb-5 text-lg">The ultimate site for college students to plan group trips without the hassle. Coordinate itineraries, vote on activities, and split expenses, all in one place.</p>
-            <button className="btn btn-accent btn-lg">Get Started</button>
+            <button onClick={handleGetStarted} className="btn btn-accent btn-lg">
+              Get Started
+            </button>
           </div>
         </div>
       </div>
@@ -83,6 +109,12 @@ function Home({ setCurrentPage, theme, toggleTheme }) {
           </div>
         </div>
       </div>
+      {/* Footer */}
+      <footer className="footer footer-center p-4 bg-base-300 text-base-content">
+        <div>
+          <p>Developed by Derrick Ma, Dale Bittner, and Christopher Webb</p>
+        </div>
+      </footer>
     </div>
   );
 }

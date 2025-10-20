@@ -1,39 +1,30 @@
 import React, { useState, useEffect } from 'react';
 
-function Login({ setCurrentPage, theme, toggleTheme }) {
+// Fetch all logins for testing
+function Login({ setCurrentPage, theme, onLoginSuccess }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const [allLogins, setAllLogins] = useState([]);
 
-  // Fetch all logins for testing
-  useEffect(() => {
-    const fetchLogins = async () => {
-      try {
-        const response = await fetch("http://localhost:8000/logins");
-        const data = await response.json();
-        setAllLogins(data.logins);
-      } catch (error) {
-        console.error("Error fetching logins:", error);
-      }
-    };
-    fetchLogins();
-  }, []);
+  const url = "http://localhost:8000";
 
   const handleLogin = async () => {
     try {
-      const response = await fetch("http://localhost:8000/logins");
+      // POST to the new /login endpoint
+      const response = await fetch(url+"/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
       const data = await response.json();
-      console.log("Logins fetched:", response);
 
-      const match = data.logins.find(
-        (user) => user.username === username && user.password === password
-      );
-
-      if (match) {
+      if (response.ok && data.success) {
         setMessage("Login successful!");
+        // Call the onLoginSuccess function from App.jsx
+        onLoginSuccess(username); 
       } else {
-        setMessage("Invalid username or password.");
+        setMessage(data.message || data.detail || "Invalid username or password.");
       }
     } catch (error) {
       console.error(error);
@@ -50,22 +41,6 @@ function Login({ setCurrentPage, theme, toggleTheme }) {
       </div>
 
       <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] space-y-6">
-        {/* Box showing all logins for testing */}
-        <div className="bg-base-100 p-4 rounded-lg shadow-md w-96">
-          <h2 className="text-xl font-bold mb-2 text-center">Current Logins</h2>
-          {allLogins.length > 0 ? (
-            <ul className="list-disc list-inside">
-              {allLogins.map((user, index) => (
-                <li key={index}>
-                  {user.username} - {user.password}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-center text-gray-500">No logins found.</p>
-          )}
-        </div>
-
         {/* Login form */}
         <div className="bg-base-100 p-8 rounded-lg shadow-md w-96">
           <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>

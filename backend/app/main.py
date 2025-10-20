@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 import os
@@ -22,11 +22,23 @@ app.add_middleware(
 def read_root():
     return {"message": "Hello from FastAPI + MongoDB"}
 
-@app.get("/logins")
-def get_logins():
-    # Fetch all documents from the Accounts collection
-    logins = list(users.find({}, {"_id": 0}))  # exclude MongoDB's _id field
-    return {"logins": logins}
+@app.post("/login")
+async def login(request: Request):
+    data = await request.json()
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username and password are required.")
+
+    # Find the user in the database
+    user = users.find_one({"username": username})
+
+    # Check if user exists and password is correct
+    if user and user["password"] == password:
+        return {"success": True, "message": "Login successful!"}
+    
+    return {"success": False, "message": "Invalid username or password."}
 
 @app.post("/signup")
 async def signup(request: Request):

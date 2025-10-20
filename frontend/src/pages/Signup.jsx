@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 
-function Signup({ setCurrentPage, theme, toggleTheme }) {
+function Signup({ setCurrentPage, theme }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+
+  const url = "http://localhost:8000";
 
   const handleSignup = async () => {
     if (!username || !password) {
@@ -12,31 +14,21 @@ function Signup({ setCurrentPage, theme, toggleTheme }) {
     }
 
     try {
-      // Fetch existing logins
-      const response = await fetch("http://localhost:8000/logins");
-      const data = await response.json();
-
-      const existingUser = data.logins.find((user) => user.username === username);
-
-      if (existingUser) {
-        setMessage("Username already exists. Please choose another.");
-        return;
-      }
-
-      // Add new user via POST request
-      const postResponse = await fetch("http://localhost:8000/signup", {
+      // Only make the POST request. The backend handles the check.
+      const postResponse = await fetch(url+"/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
-      if (postResponse.ok) {
-        setMessage("Signup successful!");
+      const data = await postResponse.json();
+
+      if (postResponse.ok && data.success) {
+        setMessage("Signup successful! You can now log in.");
         setUsername("");
         setPassword("");
       } else {
-        const errorData = await postResponse.json();
-        setMessage(`Error: ${errorData.detail || "Unknown error"}`);
+        setMessage(data.message || data.detail || "Unknown error");
       }
     } catch (error) {
       console.error(error);

@@ -11,7 +11,7 @@ function Home({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }) {
     if (currentUser) {
       setCurrentPage('itinerary');
     } else {
-      setCurrentPage('signup');
+      setCurrentPage('login');
     }
   };
   

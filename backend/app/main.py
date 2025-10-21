@@ -7,8 +7,11 @@ app = FastAPI()
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://TripSync:1a2qYb9vOavPeMtw@tripsync.kl0if1g.mongodb.net/")
 client = MongoClient(MONGO_URI)
-db = client["Logins"]
-users = db["Accounts"]
+logins = client["Logins"]
+users = logins["Accounts"]
+trips = client["Trips"]
+calendars = trips["Calendars"]
+events = trips["Events"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,3 +59,43 @@ async def signup(request: Request):
     # Insert new user
     users.insert_one({"username": username, "password": password})
     return {"success": True, "message": "Signup successful!"}
+
+@app.post("/get-calendars")
+async def get_calendars(request: Request):
+    data = await request.json()
+    username = data.get("username")
+    
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+    
+    # Find all calendar documents associated with the username
+    user_calendars = list(calendars.find({"username": username}))
+    
+    # Convert ObjectId to string for JSON serialization
+    for calendar in user_calendars:
+        calendar["_id"] = str(calendar["_id"])
+    
+    if user_calendars:
+        return {"success": True, "calendars": user_calendars}
+    
+    return {"success": False, "message": "No calendars found for this user."}
+
+@app.post("/get-events")
+async def get_events(request: Request):
+    data = await request.json()
+    calendar_id = data.get("calendar_id")
+    
+    if not calendar_id:
+        raise HTTPException(status_code=400, detail="Calendar ID is required.")
+    
+    # Find all event documents associated with the calendar_id
+    calendar_events = list(events.find({"calendar": calendar_id}))
+    
+    # Convert ObjectId to string for JSON serialization
+    for event in calendar_events:
+        event["_id"] = str(event["_id"])
+    
+    if calendar_events:
+        return {"success": True, "events": calendar_events}
+    
+    return {"success": False, "message": "No events found for this calendar."}

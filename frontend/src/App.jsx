@@ -68,6 +68,7 @@ function App() {
     return (
       <Signup 
         setCurrentPage={setCurrentPage} 
+        setCurrentUser={setCurrentUser}
         theme={theme} 
         toggleTheme={toggleTheme} 
       />

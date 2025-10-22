@@ -57,7 +57,7 @@ async def signup(request: Request):
         return {"success": False, "message": "Username already exists."}
 
     # Insert new user
-    users.insert_one({"username": username, "password": password})
+    users.insert_one({"username": username, "password": password, "email": ""})
     return {"success": True, "message": "Signup successful!"}
 
 @app.post("/get-calendars")

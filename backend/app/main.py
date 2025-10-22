@@ -1,7 +1,13 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
+from pydantic import BaseModel
 import os
+
+# Create Pydantic models for request validation
+class UserCredentials(BaseModel):
+    username: str
+    password: str
 
 app = FastAPI()
 
@@ -26,10 +32,9 @@ def read_root():
     return {"message": "Hello from FastAPI + MongoDB"}
 
 @app.post("/login")
-async def login(request: Request):
-    data = await request.json()
-    username = data.get("username")
-    password = data.get("password")
+async def login(credentials: UserCredentials):
+    username = credentials.username
+    password = credentials.password
 
     if not username or not password:
         raise HTTPException(status_code=400, detail="Username and password are required.")
@@ -44,10 +49,9 @@ async def login(request: Request):
     return {"success": False, "message": "Invalid username or password."}
 
 @app.post("/signup")
-async def signup(request: Request):
-    data = await request.json()  # Get JSON data from frontend
-    username = data.get("username")
-    password = data.get("password")
+async def signup(credentials: UserCredentials):
+    username = credentials.username
+    password = credentials.password
 
     if not username or not password:
         return {"success": False, "message": "Username and password are required."}
@@ -61,7 +65,7 @@ async def signup(request: Request):
     return {"success": True, "message": "Signup successful!"}
 
 @app.post("/calendars")
-async def get_calendars(request: Request):
+async def calendars(request: Request):
     data = await request.json()
     username = data.get("username")
     
@@ -81,7 +85,7 @@ async def get_calendars(request: Request):
     return {"success": False, "message": "No calendars found for this user."}
 
 @app.post("/events")
-async def get_events(request: Request):
+async def events(request: Request):
     data = await request.json()
     calendar_id = data.get("calendar_id")
     

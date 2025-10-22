@@ -10,7 +10,7 @@ function Login({ setCurrentPage, theme, onLoginSuccess }) {
 
   const handleLogin = async () => {
     try {
-      // POST to the new /login endpoint
+      // POST to the /login endpoint
       const response = await fetch(url+"/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Itinerary from './pages/Itinerary';
 import Trips from './pages/Trips';
+import Profile from './pages/Profile';
 
 function App() {
 
@@ -42,7 +43,7 @@ function App() {
   // Function to handle successful login
   const handleLogin = (username) => {
     setCurrentUser(username);
-    setCurrentPage('itinerary');
+    setCurrentPage('trips');
   };
 
   // Function to handle logout
@@ -96,6 +97,19 @@ function App() {
         toggleTheme={toggleTheme} 
         currentUser={currentUser} 
         onLogout={handleLogout} 
+      />
+    );
+  }
+
+  if (currentPage === 'profile') {
+    return (
+      <Profile
+        setCurrentPage={setCurrentPage}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        currentUser={currentUser}
+        setCurrentUser={setCurrentUser}
+        onLogout={handleLogout}
       />
     );
   }

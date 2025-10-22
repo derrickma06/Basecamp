@@ -204,7 +204,7 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }) {
                   onClick={() => setIsModalOpen(true)} 
                   className="btn btn-primary btn-lg"
                 >
-                  Create Trip
+                  + Create Trip
                 </button>
               </div>
             </div>

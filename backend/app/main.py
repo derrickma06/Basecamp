@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pydantic import BaseModel
+from datetime import date
 import os
 
 # Create Pydantic models for request validation
@@ -15,6 +16,12 @@ class Trip(BaseModel):
     start: str
     end: str
     description: str
+
+class Profile(BaseModel):
+    old_username: str
+    username: str
+    email: str
+    date_created: str
 
 app = FastAPI()
 
@@ -38,6 +45,40 @@ app.add_middleware(
 def read_root():
     return {"message": "Hello from FastAPI + MongoDB"}
 
+@app.get("/profiles/{username}")
+async def get_profile(username: str):
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+    
+    # Find the user in the database
+    user = users.find_one({"username": username})
+    
+    if user:
+        user["_id"] = str(user["_id"])  # Convert ObjectId to string for JSON serialization
+        return {"success": True, "profile": user}
+    
+    return {"success": False, "message": "User not found."}
+
+@app.post("/profiles")
+async def update_profile(profile: Profile):
+    old_username = profile.old_username
+    username = profile.username
+    email = profile.email
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+    
+    # Update the user's profile in the database
+    result = users.update_one(
+        {"username": old_username},
+        {"$set": {"username": username, "email": email}}
+    )
+    
+    if result.matched_count == 0:
+        return {"success": False, "message": "User not found."}
+    
+    return {"success": True, "message": "Profile updated successfully."}
+
 @app.post("/login")
 async def login(credentials: UserCredentials):
     username = credentials.username
@@ -59,6 +100,7 @@ async def login(credentials: UserCredentials):
 async def signup(credentials: UserCredentials):
     username = credentials.username
     password = credentials.password
+    date_created = date.today()
 
     if not username or not password:
         return {"success": False, "message": "Username and password are required."}
@@ -68,7 +110,7 @@ async def signup(credentials: UserCredentials):
         return {"success": False, "message": "Username already exists."}
 
     # Insert new user
-    users.insert_one({"username": username, "password": password, "email": ""})
+    users.insert_one({"username": username, "password": password, "email": "", "date_created": str(date_created)})
     return {"success": True, "message": "Signup successful!"}
 
 @app.get("/calendars/{username}")
@@ -86,7 +128,7 @@ async def get_calendars(username: str):
     if user_calendars:
         return {"success": True, "calendars": user_calendars}
     
-    return {"success": False, "message": "No trips found for this user."}
+    return {"success": False, "calendars": []}
 
 @app.post("/calendars")
 async def create_calendar(trip: Trip):

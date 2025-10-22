@@ -9,7 +9,7 @@ function Home({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }) {
   const handleGetStarted = () => {
     // If user is logged in, go to itinerary. If not, go to signup.
     if (currentUser) {
-      setCurrentPage('itinerary');
+      setCurrentPage('trips');
     } else {
       setCurrentPage('login');
     }

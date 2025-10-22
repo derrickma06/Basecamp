@@ -9,6 +9,13 @@ class UserCredentials(BaseModel):
     username: str
     password: str
 
+class Trip(BaseModel):
+    username: str
+    name: str
+    start: str
+    end: str
+    description: str
+
 app = FastAPI()
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://TripSync:1a2qYb9vOavPeMtw@tripsync.kl0if1g.mongodb.net/")
@@ -64,11 +71,8 @@ async def signup(credentials: UserCredentials):
     users.insert_one({"username": username, "password": password, "email": ""})
     return {"success": True, "message": "Signup successful!"}
 
-@app.post("/calendars")
-async def calendars(request: Request):
-    data = await request.json()
-    username = data.get("username")
-    
+@app.get("/calendars/{username}")
+async def get_calendars(username: str):
     if not username:
         raise HTTPException(status_code=400, detail="Username is required.")
     
@@ -82,7 +86,30 @@ async def calendars(request: Request):
     if user_calendars:
         return {"success": True, "calendars": user_calendars}
     
-    return {"success": False, "message": "No calendars found for this user."}
+    return {"success": False, "message": "No trips found for this user."}
+
+@app.post("/calendars")
+async def create_calendar(trip: Trip):
+    if not trip.username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+    
+    # Create new calendar document
+    new_trip = {
+        "username": trip.username,
+        "name": trip.name,
+        "start": trip.start,
+        "end": trip.end,
+        "description": trip.description
+    }
+    
+    result = calendars.insert_one(new_trip)
+    
+    # Get the created document and return it
+    created_trip = calendars.find_one({"_id": result.inserted_id})
+    created_trip["_id"] = str(created_trip["_id"])
+    
+    return {"success": True, "calendar": created_trip}
+
 
 @app.post("/events")
 async def events(request: Request):

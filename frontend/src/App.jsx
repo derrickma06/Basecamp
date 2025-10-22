@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Itinerary from './pages/Itinerary';
+import Trips from './pages/Trips';
 
 function App() {
 
@@ -71,6 +72,18 @@ function App() {
         setCurrentUser={setCurrentUser}
         theme={theme} 
         toggleTheme={toggleTheme} 
+      />
+    );
+  }
+
+  if (currentPage === 'trips') {
+    return (
+      <Trips 
+        setCurrentPage={setCurrentPage}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
     );
   }

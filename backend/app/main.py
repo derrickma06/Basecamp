@@ -60,7 +60,7 @@ async def signup(request: Request):
     users.insert_one({"username": username, "password": password, "email": ""})
     return {"success": True, "message": "Signup successful!"}
 
-@app.post("/get-calendars")
+@app.post("/calendars")
 async def get_calendars(request: Request):
     data = await request.json()
     username = data.get("username")
@@ -80,7 +80,7 @@ async def get_calendars(request: Request):
     
     return {"success": False, "message": "No calendars found for this user."}
 
-@app.post("/get-events")
+@app.post("/events")
 async def get_events(request: Request):
     data = await request.json()
     calendar_id = data.get("calendar_id")

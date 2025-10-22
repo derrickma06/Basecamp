@@ -6,10 +6,12 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }
   const [calendars, setCalendars] = useState([]);
   const [events, setEvents] = useState([]);
 
+  const url = "http://localhost:8000";
+
   useEffect(() => {
     const fetchCalendars = async () => {
       try {
-        const response = await fetch('http://localhost:8000/get-calendars', {
+        const response = await fetch(url+'/calendars', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -34,7 +36,7 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }
         const allEvents = [];
         
         for (const calendar of calendars) {
-          const response = await fetch('http://localhost:8000/get-events', {
+          const response = await fetch(url+'/events', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

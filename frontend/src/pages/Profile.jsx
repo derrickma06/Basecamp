@@ -18,6 +18,7 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [message, setMessage] = useState('');
 
   const url = "http://localhost:8000";
 
@@ -70,8 +71,9 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
         setCurrentUser(userProfile.username);
         setIsEditing(false);
         setError(null);
+        setMessage('');
       } else {
-        setError(data.message);
+        setMessage(data.message);
       }
     } catch (err) {
       setError('Failed to update profile');
@@ -144,6 +146,16 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
                       disabled
                     />
                   </div>
+
+                  {message && (
+                    <p
+                      className={`text-center font-semibold ${
+                        message.includes("successful") ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {message}
+                    </p>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="card-actions pt-4 flex justify-between">

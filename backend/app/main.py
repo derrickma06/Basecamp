@@ -72,6 +72,9 @@ async def update_profile(profile: Profile):
     if users.find_one({"username": username}):
         return {"success": False, "message": "Username already exists."}
     
+    if users.find_one({"email": email}):
+        return {"success": False, "message": "Email already in use."}
+    
     # Update the user's profile in the database
     result = users.update_one(
         {"username": old_username},

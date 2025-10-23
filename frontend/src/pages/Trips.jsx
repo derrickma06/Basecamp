@@ -157,7 +157,7 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }) {
             </div>
 
             <div className="modal-action">
-              <button type="submit" className="btn btn-primary">Create Trip</button>
+              <button type="submit" className="btn btn-primary">Create</button>
               <button 
                 type="button" 
                 className="btn" 

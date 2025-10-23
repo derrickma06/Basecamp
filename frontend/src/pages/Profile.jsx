@@ -49,8 +49,6 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      console.log(currentUser);
-      console.log(userProfile);
       const response = await fetch(url+'/profiles', {
         method: 'POST',
         headers: {

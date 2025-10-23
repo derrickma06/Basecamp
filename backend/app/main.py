@@ -68,6 +68,10 @@ async def update_profile(profile: Profile):
     if not username:
         raise HTTPException(status_code=400, detail="Username is required.")
     
+    # Check if the new username already exists (and is different from the old one)
+    if users.find_one({"username": username}):
+        return {"success": False, "message": "Username already exists."}
+    
     # Update the user's profile in the database
     result = users.update_one(
         {"username": old_username},

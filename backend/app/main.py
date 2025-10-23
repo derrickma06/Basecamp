@@ -68,13 +68,13 @@ async def update_profile(profile: Profile):
     if not username:
         raise HTTPException(status_code=400, detail="Username is required.")
     
-    # Check if the new username already exists (and is different from the old one)
-    if users.find_one({"username": username}):
+    # Check if the new username already exists and is different from the old one)
+    if users.find_one({"username": username}) and username != old_username:
         return {"success": False, "message": "Username already exists."}
     
-    if users.find_one({"email": email}):
+    if users.find_one({"email": email, "username": {"$ne": old_username}}):
         return {"success": False, "message": "Email already in use."}
-    
+
     # Update the user's profile in the database
     result = users.update_one(
         {"username": old_username},

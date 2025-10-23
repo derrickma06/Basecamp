@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
 // Fetch all logins for testing
-function Login({ setCurrentPage, theme, onLoginSuccess }) {
+function Login({ setCurrentPage, theme, setCurrentID, setCurrentUser }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
   const url = "http://localhost:8000";
+
+  const onLoginSuccess = (username, id) => {
+    setCurrentUser(username);
+    setCurrentID(id);
+    setCurrentPage('trips');
+  };
 
   const handleLogin = async () => {
     try {
@@ -22,7 +28,7 @@ function Login({ setCurrentPage, theme, onLoginSuccess }) {
       if (response.ok && data.success) {
         setMessage("Login successful!");
         // Call the onLoginSuccess function from App.jsx
-        onLoginSuccess(username); 
+        onLoginSuccess(username, data.id); 
       } else {
         setMessage(data.message || data.detail || "Invalid username or password.");
       }

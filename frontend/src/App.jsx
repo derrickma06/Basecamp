@@ -20,6 +20,10 @@ function App() {
     return localStorage.getItem('theme') || 'light';
   });
 
+  const [currentID, setCurrentID] = useState(() => {
+    return localStorage.getItem('currentID') || null;
+  });
+
   useEffect(() => {
     localStorage.setItem('theme', theme);
   }, [theme]);
@@ -35,21 +39,24 @@ function App() {
       localStorage.removeItem('currentUser');
     }
   }, [currentUser]);
+  
+useEffect(() => {
+    if (currentID) {
+      localStorage.setItem('currentID', currentID);
+    } else {
+      localStorage.removeItem('currentID');
+    }
+  }, [currentID]);
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
-  };
-
-  // Function to handle successful login
-  const handleLogin = (username) => {
-    setCurrentUser(username);
-    setCurrentPage('trips');
   };
 
   // Function to handle logout
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
       setCurrentUser(null);
+      setCurrentID(null);
       setCurrentPage('home');
     }
   };
@@ -60,8 +67,8 @@ function App() {
       <Login 
         setCurrentPage={setCurrentPage} 
         theme={theme} 
-        toggleTheme={toggleTheme} 
-        onLoginSuccess={handleLogin} 
+        setCurrentID={setCurrentID} 
+        setCurrentUser={setCurrentUser}
       />
     );
   }
@@ -71,8 +78,8 @@ function App() {
       <Signup 
         setCurrentPage={setCurrentPage} 
         setCurrentUser={setCurrentUser}
+        setCurrentID={setCurrentID}
         theme={theme} 
-        toggleTheme={toggleTheme} 
       />
     );
   }
@@ -84,6 +91,7 @@ function App() {
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
+        currentID={currentID}
         onLogout={handleLogout}
       />
     );

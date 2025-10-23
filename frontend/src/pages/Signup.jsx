@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-function Signup({ setCurrentPage, theme, setCurrentUser }) {
+function Signup({ setCurrentPage, theme, setCurrentUser, setCurrentID }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -26,6 +26,7 @@ function Signup({ setCurrentPage, theme, setCurrentUser }) {
       if (postResponse.ok && data.success) {
         setMessage("Signup successful! You can now log in.");
         setCurrentUser(username);
+        setCurrentID(data.id);
         setCurrentPage("home");
         setUsername("");
         setPassword("");

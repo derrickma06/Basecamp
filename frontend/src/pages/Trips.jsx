@@ -9,7 +9,7 @@ const formatDisplayDate = (dateString) => {
   return date.toLocaleDateString();
 };
 
-function Trips({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }) {
+function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onLogout }) {
   const [trips, setTrips] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,7 +26,7 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }) {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const response = await fetch(url+'/calendars/'+currentUser, {
+        const response = await fetch(url+'/calendars/'+currentID, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -59,6 +59,7 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }) {
     e.preventDefault();
     
     try {
+      console.log({ ...newTrip, owner: currentID, members: [currentID] });
       const response = await fetch(url+'/calendars', {
         method: 'POST',
         headers: {
@@ -66,7 +67,8 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, onLogout }) {
         },
         body: JSON.stringify({
           ...newTrip,
-          username: currentUser
+          owner: currentID,
+          members: [currentID]
         })
       });
 

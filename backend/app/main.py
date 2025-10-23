@@ -11,11 +11,12 @@ class UserCredentials(BaseModel):
     password: str
 
 class Trip(BaseModel):
-    username: str
+    owner: str
     name: str
     start: str
     end: str
     description: str
+    members: list
 
 class Profile(BaseModel):
     old_username: str
@@ -99,7 +100,7 @@ async def login(credentials: UserCredentials):
 
     # Check if user exists and password is correct
     if user and user["password"] == password:
-        return {"success": True, "message": "Login successful!"}
+        return {"success": True, "message": "Login successful!", "id": str(user["_id"])}
     
     return {"success": False, "message": "Invalid username or password."}
 
@@ -117,16 +118,14 @@ async def signup(credentials: UserCredentials):
         return {"success": False, "message": "Username already exists."}
 
     # Insert new user
-    users.insert_one({"username": username, "password": password, "email": "", "date_created": str(date_created)})
-    return {"success": True, "message": "Signup successful!"}
+    result = users.insert_one({"username": username, "password": password, "email": "", "date_created": str(date_created)})
 
-@app.get("/calendars/{username}")
-async def get_calendars(username: str):
-    if not username:
-        raise HTTPException(status_code=400, detail="Username is required.")
-    
+    return {"success": True, "message": "Signup successful!", "id": str(result.inserted_id)}
+
+@app.get("/calendars/{id}")
+async def get_calendars(id: str):    
     # Find all calendar documents associated with the username
-    user_calendars = list(calendars.find({"username": username}))
+    user_calendars = list(calendars.find({"owner": id}))
     
     # Convert ObjectId to string for JSON serialization
     for calendar in user_calendars:
@@ -138,17 +137,15 @@ async def get_calendars(username: str):
     return {"success": False, "calendars": []}
 
 @app.post("/calendars")
-async def create_calendar(trip: Trip):
-    if not trip.username:
-        raise HTTPException(status_code=400, detail="Username is required.")
-    
+async def create_calendar(trip: Trip): 
     # Create new calendar document
     new_trip = {
-        "username": trip.username,
+        "owner": trip.owner,
         "name": trip.name,
         "start": trip.start,
         "end": trip.end,
-        "description": trip.description
+        "description": trip.description,
+        "members": trip.members
     }
     
     result = calendars.insert_one(new_trip)

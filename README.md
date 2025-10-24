@@ -1,4 +1,4 @@
-# SWEGroupProject
+# Basecamp
 
 ## How to set up environment
 

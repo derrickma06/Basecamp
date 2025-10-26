@@ -33,6 +33,11 @@ class Profile(BaseModel):
     lastName: str
     date_created: str
 
+class PasswordUpdate(BaseModel):
+    username: str
+    currentPassword: str
+    newPassword: str
+
 app = FastAPI()
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://TripSync:1a2qYb9vOavPeMtw@tripsync.kl0if1g.mongodb.net/")
@@ -206,3 +211,30 @@ async def events(request: Request):
         return {"success": True, "events": calendar_events}
     
     return {"success": False, "message": "No events found for this calendar."}
+
+@app.post("/update-password")
+async def update_password(password_data: PasswordUpdate):
+    username = password_data.username
+    current_password = password_data.currentPassword
+    new_password = password_data.newPassword
+
+    # Find the user
+    user = users.find_one({"username": username})
+    
+    if not user:
+        return {"success": False, "message": "User not found"}
+    
+    # Verify current password
+    if user["password"] != current_password:
+        return {"success": False, "message": "Current password is incorrect"}
+    
+    # Update the password
+    result = users.update_one(
+        {"username": username},
+        {"$set": {"password": new_password}}
+    )
+    
+    if result.modified_count == 1:
+        return {"success": True, "message": "Password updated successfully"}
+    else:
+        return {"success": False, "message": "Failed to update password"}

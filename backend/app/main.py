@@ -13,6 +13,9 @@ class UserCredentials(BaseModel):
     email: str
     password: str
 
+class LoginCredentials(BaseModel):
+    username: str
+    password: str
 
 class Trip(BaseModel):
     owner: str
@@ -101,7 +104,7 @@ async def update_profile(profile: Profile):
     return {"success": True, "message": "Profile updated successfully."}
 
 @app.post("/login")
-async def login(credentials: UserCredentials):
+async def login(credentials: LoginCredentials):
     username = credentials.username
     password = credentials.password
 

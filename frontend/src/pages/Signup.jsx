@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from "react";
 
 function Signup({ setCurrentPage, theme, setCurrentUser, setCurrentID }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
 
   const url = "http://localhost:8000";
 
   const handleSignup = async () => {
-    if (!username || !password) {
-      setMessage("Please enter both username and password.");
+    if (!username || !password || !firstName || !lastName || !email) {
+      setMessage("Please fill in all fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match!");
       return;
     }
 
@@ -18,7 +27,13 @@ function Signup({ setCurrentPage, theme, setCurrentUser, setCurrentID }) {
       const postResponse = await fetch(url+"/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ 
+          firstName,
+          lastName,
+          username,
+          email, 
+          password 
+        }),
       });
 
       const data = await postResponse.json();
@@ -48,29 +63,76 @@ function Signup({ setCurrentPage, theme, setCurrentUser, setCurrentID }) {
       </div>
 
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <div className="bg-base-100 p-8 rounded-lg shadow-md w-96">
+        <div className="bg-base-100 p-8 rounded-lg shadow-md w-[32rem]">
           <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
 
-          <div className="mb-4">
-            <label className="block mb-1">Username</label>
-            <input
-              type="text"
-              className="input input-bordered w-full"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter a username"
-            />
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block mb-1">First Name</label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Enter first name"
+              />
+            </div>
+            <div>
+              <label className="block mb-1">Last Name</label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Enter last name"
+              />
+            </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block mb-1">Password</label>
-            <input
-              type="password"
-              className="input input-bordered w-full"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter a password"
-            />
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block mb-1">Username</label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter username"
+              />
+            </div>
+            <div>
+              <label className="block mb-1">Email</label>
+              <input
+                type="email"
+                className="input input-bordered w-full"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block mb-1">Password</label>
+              <input
+                type="password"
+                className="input input-bordered w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+              />
+            </div>
+            <div>
+              <label className="block mb-1">Confirm Password</label>
+              <input
+                type="password"
+                className="input input-bordered w-full"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm password"
+              />
+            </div>
           </div>
 
           <button onClick={handleSignup} className="btn btn-primary w-full mb-4">

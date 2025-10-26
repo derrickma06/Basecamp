@@ -7,8 +7,12 @@ import os
 
 # Create Pydantic models for request validation
 class UserCredentials(BaseModel):
+    firstName: str
+    lastName: str
     username: str
+    email: str
     password: str
+
 
 class Trip(BaseModel):
     owner: str
@@ -22,6 +26,8 @@ class Profile(BaseModel):
     old_username: str
     username: str
     email: str
+    firstName: str
+    lastName: str
     date_created: str
 
 app = FastAPI()
@@ -65,6 +71,8 @@ async def update_profile(profile: Profile):
     old_username = profile.old_username
     username = profile.username
     email = profile.email
+    firstName = profile.firstName
+    lastName = profile.lastName
 
     if not username:
         return {"success": False, "message": "Username is required."}
@@ -79,7 +87,12 @@ async def update_profile(profile: Profile):
     # Update the user's profile in the database
     result = users.update_one(
         {"username": old_username},
-        {"$set": {"username": username, "email": email}}
+        {"$set": {
+            "username": username,
+            "email": email,
+            "firstName": firstName,
+            "lastName": lastName
+        }}
     )
     
     if result.matched_count == 0:
@@ -106,8 +119,11 @@ async def login(credentials: UserCredentials):
 
 @app.post("/signup")
 async def signup(credentials: UserCredentials):
+    firstName = credentials.firstName
+    lastName = credentials.lastName
     username = credentials.username
     password = credentials.password
+    email = credentials.email
     date_created = date.today()
 
     if not username or not password:
@@ -116,9 +132,20 @@ async def signup(credentials: UserCredentials):
     # Check if username already exists
     if users.find_one({"username": username}):
         return {"success": False, "message": "Username already exists."}
+    
+    # Check if email already exists
+    if users.find_one({"email": email}):
+        return {"success": False, "message": "Email already exists."}
 
     # Insert new user
-    result = users.insert_one({"username": username, "password": password, "email": "", "date_created": str(date_created)})
+    result = users.insert_one({
+        "username": username,
+        "password": password,
+        "firstName": firstName,
+        "lastName": lastName,
+        "email": email,
+        "date_created": str(date_created)
+    })
 
     return {"success": True, "message": "Signup successful!", "id": str(result.inserted_id)}
 

@@ -13,6 +13,8 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
   const [userProfile, setUserProfile] = useState({
     username: currentUser || '',
     email: '',
+    firstName: '',
+    lastName: '',
     joinedDate: ''
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -29,7 +31,13 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
         const data = await response.json();
         
         if (data.success) {
-          setUserProfile({username: data.profile.username, email: data.profile.email, joinedDate: data.profile.date_created});
+          setUserProfile({
+            username: data.profile.username, 
+            email: data.profile.email, 
+            firstName: data.profile.firstName,
+            lastName: data.profile.lastName,
+            joinedDate: data.profile.date_created
+          });
           setError(null);
         } else {
           setError(data.message);
@@ -57,6 +65,8 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
         body: JSON.stringify({
           old_username: currentUser,
           username: userProfile.username,
+          firstName: userProfile.firstName,
+          lastName: userProfile.lastName,
           email: userProfile.email,
           date_created: userProfile.joinedDate
         })
@@ -104,6 +114,37 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
             <div className="card-body p-8">
               <form onSubmit={handleUpdateProfile}>
                 <div className="space-y-8">
+                  {/* Name Fields Container */}
+                  <div className="flex gap-4">
+                    {/* First Name Field */}
+                    <div className="form-control flex-1">
+                      <label className="label">
+                        <span className="label-text text-lg font-semibold">First Name</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        className="input input-bordered text-lg"
+                        value={userProfile.firstName}
+                        onChange={(e) => setUserProfile({...userProfile, firstName: e.target.value})}
+                        disabled={!isEditing}
+                      />
+                    </div>
+
+                    {/* Last Name Field */}
+                    <div className="form-control flex-1">
+                      <label className="label">
+                        <span className="label-text text-lg font-semibold">Last Name</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        className="input input-bordered text-lg"
+                        value={userProfile.lastName}
+                        onChange={(e) => setUserProfile({...userProfile, lastName: e.target.value})}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
+                  
                   {/* Username Field */}
                   <div className="form-control">
                     <label className="label">

@@ -128,7 +128,7 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
     const data = await response.json();
     
     if (data.success) {
-      setMessage('Password updated successfully!');
+      setPasswordError('Password updated successfully!');
       setPasswords({
         currentPassword: '',
         newPassword: '',
@@ -339,7 +339,9 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
                     </div>
 
                     {passwordError && (
-                      <div className="text-error text-center font-semibold">
+                      <div className={`text-center font-semibold ${
+                        passwordError.includes("successfully") ? "text-success" : "text-error"
+                      }`}>
                         {passwordError}
                       </div>
                     )}

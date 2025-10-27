@@ -34,8 +34,8 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
           setUserProfile({
             username: data.profile.username, 
             email: data.profile.email, 
-            firstName: data.profile.firstName,
-            lastName: data.profile.lastName,
+            firstName: data.profile.first_name,
+            lastName: data.profile.last_name,
             joinedDate: data.profile.date_created
           });
           setError(null);
@@ -65,8 +65,8 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
         body: JSON.stringify({
           old_username: currentUser,
           username: userProfile.username,
-          firstName: userProfile.firstName,
-          lastName: userProfile.lastName,
+          first_name: userProfile.firstName,
+          last_name: userProfile.lastName,
           email: userProfile.email,
           date_created: userProfile.joinedDate
         })

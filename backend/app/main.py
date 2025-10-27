@@ -7,8 +7,8 @@ import os
 
 # Create Pydantic models for request validation
 class UserCredentials(BaseModel):
-    firstName: str
-    lastName: str
+    first_name: str
+    last_name: str
     username: str
     email: str
     password: str
@@ -29,8 +29,8 @@ class Profile(BaseModel):
     old_username: str
     username: str
     email: str
-    firstName: str
-    lastName: str
+    first_name: str
+    last_name: str
     date_created: str
 
 app = FastAPI()
@@ -74,8 +74,8 @@ async def update_profile(profile: Profile):
     old_username = profile.old_username
     username = profile.username
     email = profile.email
-    firstName = profile.firstName
-    lastName = profile.lastName
+    first_name = profile.first_name
+    last_name = profile.last_name
 
     if not username:
         return {"success": False, "message": "Username is required."}
@@ -93,8 +93,8 @@ async def update_profile(profile: Profile):
         {"$set": {
             "username": username,
             "email": email,
-            "firstName": firstName,
-            "lastName": lastName
+            "first_name": first_name,
+            "last_name": last_name
         }}
     )
     
@@ -122,8 +122,8 @@ async def login(credentials: LoginCredentials):
 
 @app.post("/signup")
 async def signup(credentials: UserCredentials):
-    firstName = credentials.firstName
-    lastName = credentials.lastName
+    first_name = credentials.first_name
+    last_name = credentials.last_name
     username = credentials.username
     password = credentials.password
     email = credentials.email
@@ -144,8 +144,8 @@ async def signup(credentials: UserCredentials):
     result = users.insert_one({
         "username": username,
         "password": password,
-        "firstName": firstName,
-        "lastName": lastName,
+        "first_name": first_name,
+        "last_name": last_name,
         "email": email,
         "date_created": str(date_created)
     })

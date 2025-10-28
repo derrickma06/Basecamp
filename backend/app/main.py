@@ -25,6 +25,16 @@ class Trip(BaseModel):
     description: str
     members: list
 
+class Event(BaseModel):
+    calendarId: str
+    name: str
+    date: str
+    startTime: str
+    endTime: str
+    description: str
+    location: str
+    creator: str
+
 class Profile(BaseModel):
     old_username: str
     username: str
@@ -159,7 +169,7 @@ async def signup(credentials: UserCredentials):
 
 @app.get("/calendars/{id}")
 async def get_calendars(id: str):    
-    # Find all calendar documents associated with the username
+    # Find all calendar documents associated with the user id
     user_calendars = list(calendars.find({"owner": id}))
     
     # Convert ObjectId to string for JSON serialization
@@ -170,6 +180,22 @@ async def get_calendars(id: str):
         return {"success": True, "calendars": user_calendars}
     
     return {"success": False, "calendars": []}
+
+# Get a single calendar by ID
+@app.get("/calendars/detail/{calendar_id}")
+async def get_calendar_detail(calendar_id: str):
+    from bson import ObjectId
+    
+    try:
+        calendar = calendars.find_one({"_id": ObjectId(calendar_id)})
+        
+        if calendar:
+            calendar["_id"] = str(calendar["_id"])
+            return {"success": True, "calendar": calendar}
+        
+        return {"success": False, "message": "Calendar not found"}
+    except Exception as e:
+        return {"success": False, "message": f"Invalid calendar ID: {str(e)}"}
 
 @app.post("/calendars")
 async def create_calendar(trip: Trip): 
@@ -191,26 +217,81 @@ async def create_calendar(trip: Trip):
     
     return {"success": True, "calendar": created_trip}
 
-
-@app.post("/events")
-async def events(request: Request):
-    data = await request.json()
-    calendar_id = data.get("calendar_id")
+# Get all events for a specific calendar
+@app.get("/events/calendar/{calendar_id}")
+async def get_calendar_events(calendar_id: str):
+    calendar_events = list(events.find({"calendarId": calendar_id}))
     
-    if not calendar_id:
-        raise HTTPException(status_code=400, detail="Calendar ID is required.")
-    
-    # Find all event documents associated with the calendar_id
-    calendar_events = list(events.find({"calendar": calendar_id}))
-    
-    # Convert ObjectId to string for JSON serialization
     for event in calendar_events:
         event["_id"] = str(event["_id"])
     
-    if calendar_events:
-        return {"success": True, "events": calendar_events}
+    return {"success": True, "events": calendar_events}
+
+# Create a new event
+@app.post("/events")
+async def create_event(event: Event):
+    new_event = {
+        "calendarId": event.calendarId,
+        "name": event.name,
+        "date": event.date,
+        "startTime": event.startTime,
+        "endTime": event.endTime,
+        "description": event.description,
+        "location": event.location,
+        "creator": event.creator
+    }
     
-    return {"success": False, "message": "No events found for this calendar."}
+    result = events.insert_one(new_event)
+    
+    created_event = events.find_one({"_id": result.inserted_id})
+    created_event["_id"] = str(created_event["_id"])
+    
+    return {"success": True, "event": created_event}
+
+# Update an existing event
+@app.put("/events/{event_id}")
+async def update_event(event_id: str, event: Event):
+    from bson import ObjectId
+    
+    try:
+        # Update the event document
+        result = events.update_one(
+            {"_id": ObjectId(event_id)},
+            {"$set": {
+                "name": event.name,
+                "date": event.date,
+                "startTime": event.startTime,
+                "endTime": event.endTime,
+                "description": event.description,
+                "location": event.location
+            }}
+        )
+        
+        if result.matched_count == 0:
+            return {"success": False, "message": "Event not found"}
+        
+        # Get the updated event
+        updated_event = events.find_one({"_id": ObjectId(event_id)})
+        updated_event["_id"] = str(updated_event["_id"])
+        
+        return {"success": True, "event": updated_event}
+    except Exception as e:
+        return {"success": False, "message": f"Error updating event: {str(e)}"}
+
+# Delete an event
+@app.delete("/events/{event_id}")
+async def delete_event(event_id: str):
+    from bson import ObjectId
+    
+    try:
+        result = events.delete_one({"_id": ObjectId(event_id)})
+        
+        if result.deleted_count == 1:
+            return {"success": True, "message": "Event deleted successfully"}
+        
+        return {"success": False, "message": "Event not found"}
+    except Exception as e:
+        return {"success": False, "message": f"Error deleting event: {str(e)}"}
 
 @app.post("/update-password")
 async def update_password(password_data: PasswordUpdate):

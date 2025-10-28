@@ -5,13 +5,13 @@ import Signup from './pages/Signup';
 import Itinerary from './pages/Itinerary';
 import Trips from './pages/Trips';
 import Profile from './pages/Profile';
+import Events from './pages/Events';
 
 function App() {
-
   const [currentPage, setCurrentPage] = useState(() => {
     return localStorage.getItem('currentPage') || 'home';
   });  
-
+  
   const [currentUser, setCurrentUser] = useState(() => {
     return localStorage.getItem('currentUser') || null;
   });  
@@ -19,9 +19,14 @@ function App() {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
-
+  
   const [currentID, setCurrentID] = useState(() => {
     return localStorage.getItem('currentID') || null;
+  });
+  
+  // NEW: State to store the selected trip ID
+  const [selectedTripId, setSelectedTripId] = useState(() => {
+    return localStorage.getItem('selectedTripId') || null;
   });
 
   useEffect(() => {
@@ -31,7 +36,7 @@ function App() {
   useEffect(() => {
     localStorage.setItem('currentPage', currentPage);
   }, [currentPage]);
-
+  
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('currentUser', currentUser);
@@ -40,13 +45,22 @@ function App() {
     }
   }, [currentUser]);
   
-useEffect(() => {
+  useEffect(() => {
     if (currentID) {
       localStorage.setItem('currentID', currentID);
     } else {
       localStorage.removeItem('currentID');
     }
   }, [currentID]);
+
+  // NEW: Store selected trip ID in localStorage
+  useEffect(() => {
+    if (selectedTripId) {
+      localStorage.setItem('selectedTripId', selectedTripId);
+    } else {
+      localStorage.removeItem('selectedTripId');
+    }
+  }, [selectedTripId]);
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -57,7 +71,16 @@ useEffect(() => {
     if (window.confirm('Are you sure you want to log out?')) {
       setCurrentUser(null);
       setCurrentID(null);
+      setSelectedTripId(null);
       setCurrentPage('home');
+    }
+  };
+
+  // NEW: Enhanced setCurrentPage function that can accept trip ID
+  const handleSetCurrentPage = (page, tripId = null) => {
+    setCurrentPage(page);
+    if (tripId) {
+      setSelectedTripId(tripId);
     }
   };
 
@@ -65,7 +88,7 @@ useEffect(() => {
   if (currentPage === 'login') {
     return (
       <Login 
-        setCurrentPage={setCurrentPage} 
+        setCurrentPage={handleSetCurrentPage} 
         theme={theme} 
         setCurrentID={setCurrentID} 
         setCurrentUser={setCurrentUser}
@@ -76,18 +99,18 @@ useEffect(() => {
   if (currentPage === 'signup') {
     return (
       <Signup 
-        setCurrentPage={setCurrentPage} 
+        setCurrentPage={handleSetCurrentPage} 
         setCurrentUser={setCurrentUser}
         setCurrentID={setCurrentID}
         theme={theme} 
       />
     );
   }
-
+  
   if (currentPage === 'trips') {
     return (
       <Trips 
-        setCurrentPage={setCurrentPage}
+        setCurrentPage={handleSetCurrentPage}
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
@@ -97,10 +120,25 @@ useEffect(() => {
     );
   }
 
+  //Events page route
+  if (currentPage === 'events') {
+    return (
+      <Events 
+        setCurrentPage={handleSetCurrentPage}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        currentUser={currentUser}
+        currentID={currentID}
+        onLogout={handleLogout}
+        tripId={selectedTripId}
+      />
+    );
+  }
+  
   if (currentPage === 'itinerary') {
     return (
       <Itinerary 
-        setCurrentPage={setCurrentPage} 
+        setCurrentPage={handleSetCurrentPage} 
         theme={theme} 
         toggleTheme={toggleTheme} 
         currentUser={currentUser} 
@@ -108,11 +146,11 @@ useEffect(() => {
       />
     );
   }
-
+  
   if (currentPage === 'profile') {
     return (
       <Profile
-        setCurrentPage={setCurrentPage}
+        setCurrentPage={handleSetCurrentPage}
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
@@ -121,10 +159,10 @@ useEffect(() => {
       />
     );
   }
-
+  
   return (
     <Home 
-      setCurrentPage={setCurrentPage} 
+      setCurrentPage={handleSetCurrentPage} 
       theme={theme} 
       toggleTheme={toggleTheme}
       currentUser={currentUser}

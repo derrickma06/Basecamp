@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 
 const formatDisplayDate = (dateString) => {
@@ -53,7 +53,7 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
     if (currentUser) {
       fetchTrips();
     }
-  }, [currentUser, url]);
+  }, [currentUser, currentID, url]);
 
   const handleCreateTrip = async (e) => {
     e.preventDefault();
@@ -170,9 +170,7 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
             </div>
           </form>
         </div>
-        <form method="dialog" className="modal-backdrop">
-          <button onClick={() => setIsModalOpen(false)}>close</button>
-        </form>
+        <div className="modal-backdrop" onClick={() => setIsModalOpen(false)} />
       </dialog>
 
       <div className="max-w-7xl mx-auto px-8 py-12">
@@ -217,7 +215,10 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
               <div 
                 key={trip._id} 
                 className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer" 
-                onClick={() => setCurrentPage('trip-details', trip._id)}
+                onClick={() => {
+                  console.log('Trip clicked, ID:', trip._id);
+                  setCurrentPage('events', trip._id);
+                }}
               >
                 <div className="card-body p-8">
                   <h2 className="card-title text-xl mb-3">{trip.name}</h2>

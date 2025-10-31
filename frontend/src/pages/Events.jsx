@@ -47,7 +47,7 @@ const getDateKey = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-function TripEvents({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onLogout, tripId }) {
+function TripEvents({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onLogout, currentTrip }) {
   const [trip, setTrip] = useState(null);
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,41 +56,18 @@ function TripEvents({ setCurrentPage, theme, toggleTheme, currentUser, currentID
   const [selectedDate, setSelectedDate] = useState('');
   const scrollContainerRef = useRef(null);
   const [newEvent, setNewEvent] = useState({
-    name: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    description: '',
-    location: ''
+    title: '',
+    start: '',
+    end: '',
+    details: '',
   });
 
   const url = "http://localhost:8000";
 
   useEffect(() => {
-    const fetchTripAndEvents = async () => {
+    const fetchEvents = async () => {
       console.log('Fetching trip data for tripId:', tripId);
       try {
-        // Fetch trip details - FIXED URL
-        console.log('Fetching from:', `${url}/calendars/detail/${tripId}`);
-        const tripResponse = await fetch(`${url}/calendars/detail/${tripId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        console.log('Trip response status:', tripResponse.status);
-        const tripData = await tripResponse.json();
-        console.log('Trip data:', tripData);
-        
-        if (tripData.success && tripData.calendar) {
-          setTrip(tripData.calendar);
-        } else {
-          setError(tripData.message || 'Failed to load trip');
-        }
-
-        // Fetch events for this trip
-        console.log('Fetching events from:', `${url}/events/calendar/${tripId}`);
         const eventsResponse = await fetch(`${url}/events/calendar/${tripId}`, {
           method: 'GET',
           headers: {
@@ -98,9 +75,7 @@ function TripEvents({ setCurrentPage, theme, toggleTheme, currentUser, currentID
           }
         });
         
-        console.log('Events response status:', eventsResponse.status);
         const eventsData = await eventsResponse.json();
-        console.log('Events data:', eventsData);
         
         if (eventsData.success && eventsData.events) {
           setEvents(eventsData.events);
@@ -117,14 +92,12 @@ function TripEvents({ setCurrentPage, theme, toggleTheme, currentUser, currentID
       }
     };
 
-    if (currentUser && tripId) {
-      console.log('Starting fetch with currentUser:', currentUser, 'tripId:', tripId);
+    if (currentUser && currentTrip) {
       fetchTripAndEvents();
     } else {
-      console.log('Not fetching - currentUser:', currentUser, 'tripId:', tripId);
       setIsLoading(false);
     }
-  }, [currentUser, tripId, url]);
+  }, [currentUser, currentTrip, url]);
 
   const handleCreateEvent = async (e) => {
     e.preventDefault();
@@ -137,7 +110,7 @@ function TripEvents({ setCurrentPage, theme, toggleTheme, currentUser, currentID
         },
         body: JSON.stringify({
           ...newEvent,
-          calendarId: tripId,
+          trip_id: currentTrip._id,
           creator: currentID
         })
       });
@@ -147,12 +120,10 @@ function TripEvents({ setCurrentPage, theme, toggleTheme, currentUser, currentID
       if (data.success) {
         setEvents(prev => [...prev, data.event]);
         setNewEvent({
-          name: '',
-          date: '',
-          startTime: '',
-          endTime: '',
-          description: '',
-          location: ''
+          title: '',
+          start: '',
+          end: '',
+          details: '',
         });
         setIsModalOpen(false);
       } else {

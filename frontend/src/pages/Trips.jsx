@@ -9,7 +9,7 @@ const formatDisplayDate = (dateString) => {
   return date.toLocaleDateString();
 };
 
-function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onLogout }) {
+function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onLogout, setCurrentTrip }) {
   const [trips, setTrips] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -216,9 +216,18 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
                 key={trip._id} 
                 className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer" 
                 onClick={() => {
-                  console.log('Trip clicked, ID:', trip._id);
-                  setCurrentPage('events', trip._id);
-                }}
+                  setCurrentTrip({
+                    _id: trip._id,
+                    name: trip.name,
+                    start: trip.start,
+                    end: trip.end,
+                    description: trip.description,
+                    owner: trip.owner,
+                    members: trip.members
+                  });
+                  setCurrentPage('itinerary');
+                  }
+                }
               >
                 <div className="card-body p-8">
                   <h2 className="card-title text-xl mb-3">{trip.name}</h2>

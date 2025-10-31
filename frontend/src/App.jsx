@@ -23,11 +23,12 @@ function App() {
   const [currentID, setCurrentID] = useState(() => {
     return localStorage.getItem('currentID') || null;
   });
-  
-  // NEW: State to store the selected trip ID
-  const [selectedTripId, setSelectedTripId] = useState(() => {
-    return localStorage.getItem('selectedTripId') || null;
+
+  const [currentTrip, setCurrentTrip] = useState(() => {
+    const savedTrip = localStorage.getItem('currentTrip');
+    return savedTrip ? JSON.parse(savedTrip) : null;
   });
+
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
@@ -53,20 +54,18 @@ function App() {
     }
   }, [currentID]);
 
-  // NEW: Store selected trip ID in localStorage
   useEffect(() => {
-    if (selectedTripId) {
-      localStorage.setItem('selectedTripId', selectedTripId);
+    if (currentTrip) {
+      localStorage.setItem('currentTrip', JSON.stringify(currentTrip));
     } else {
-      localStorage.removeItem('selectedTripId');
+      localStorage.removeItem('currentTrip');
     }
-  }, [selectedTripId]);
+  }, [currentTrip]);
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
-  // Function to handle logout
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
       setCurrentUser(null);
@@ -76,19 +75,11 @@ function App() {
     }
   };
 
-  // NEW: Enhanced setCurrentPage function that can accept trip ID
-  const handleSetCurrentPage = (page, tripId = null) => {
-    setCurrentPage(page);
-    if (tripId) {
-      setSelectedTripId(tripId);
-    }
-  };
-
   // Decides which page to display
   if (currentPage === 'login') {
     return (
       <Login 
-        setCurrentPage={handleSetCurrentPage} 
+        setCurrentPage={setCurrentPage} 
         theme={theme} 
         setCurrentID={setCurrentID} 
         setCurrentUser={setCurrentUser}
@@ -99,7 +90,7 @@ function App() {
   if (currentPage === 'signup') {
     return (
       <Signup 
-        setCurrentPage={handleSetCurrentPage} 
+        setCurrentPage={setCurrentPage} 
         setCurrentUser={setCurrentUser}
         setCurrentID={setCurrentID}
         theme={theme} 
@@ -110,27 +101,27 @@ function App() {
   if (currentPage === 'trips') {
     return (
       <Trips 
-        setCurrentPage={handleSetCurrentPage}
+        setCurrentPage={setCurrentPage}
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
         currentID={currentID}
         onLogout={handleLogout}
+        setCurrentTrip={setCurrentTrip}
       />
     );
   }
 
-  //Events page route
   if (currentPage === 'events') {
     return (
       <Events 
-        setCurrentPage={handleSetCurrentPage}
+        setCurrentPage={setCurrentPage}
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
         currentID={currentID}
         onLogout={handleLogout}
-        tripId={selectedTripId}
+        currentTrip={currentTrip}
       />
     );
   }
@@ -138,10 +129,12 @@ function App() {
   if (currentPage === 'itinerary') {
     return (
       <Itinerary 
-        setCurrentPage={handleSetCurrentPage} 
+        setCurrentPage={setCurrentPage} 
+        currentTrip={currentTrip}
         theme={theme} 
         toggleTheme={toggleTheme} 
         currentUser={currentUser} 
+        currentID={currentID}
         onLogout={handleLogout} 
       />
     );
@@ -150,7 +143,7 @@ function App() {
   if (currentPage === 'profile') {
     return (
       <Profile
-        setCurrentPage={handleSetCurrentPage}
+        setCurrentPage={setCurrentPage}
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
@@ -162,7 +155,7 @@ function App() {
   
   return (
     <Home 
-      setCurrentPage={handleSetCurrentPage} 
+      setCurrentPage={setCurrentPage} 
       theme={theme} 
       toggleTheme={toggleTheme}
       currentUser={currentUser}

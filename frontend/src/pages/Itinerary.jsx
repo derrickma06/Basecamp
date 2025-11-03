@@ -276,21 +276,134 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
   );
 };
 
-const DayManagementModal = ({ isOpen, onClose, currentTrip, onAddDay, onRemoveDay }) => {
+const TripManagementModal = ({ isOpen, onClose, currentTrip, events, onSaveChanges, onDeleteTrip }) => {
+  const [tripName, setTripName] = useState('');
+  const [tripDescription, setTripDescription] = useState('');
+  const [tempStartDate, setTempStartDate] = useState('');
+  const [tempEndDate, setTempEndDate] = useState('');
+
+  useEffect(() => {
+    if (currentTrip) {
+      setTripName(currentTrip.name || '');
+      setTripDescription(currentTrip.description || '');
+      setTempStartDate(currentTrip.start);
+      setTempEndDate(currentTrip.end);
+    }
+  }, [currentTrip, isOpen]);
+
   if (!isOpen) return null;
 
-  const tripStart = moment(currentTrip.start);
-  const tripEnd = moment(currentTrip.end);
+  const tripStart = moment(tempStartDate);
+  const tripEnd = moment(tempEndDate);
   const duration = tripEnd.diff(tripStart, 'days') + 1;
+  
+  const handleAddDay = (position) => {
+    if (position === 'start') {
+      setTempStartDate(moment(tempStartDate).subtract(1, 'day').format('YYYY-MM-DD'));
+    } else {
+      setTempEndDate(moment(tempEndDate).add(1, 'day').format('YYYY-MM-DD'));
+    }
+  };
+
+  const handleRemoveDay = (position) => {
+    if (duration <= 1) return;
+    
+    if (position === 'start') {
+      const dateToRemove = moment(tempStartDate);
+      const eventsOnDay = events.filter(e => 
+        moment(e.start).format('YYYY-MM-DD') === dateToRemove.format('YYYY-MM-DD')
+      );
+      
+      if (eventsOnDay.length > 0 && 
+          !window.confirm(`This will delete ${eventsOnDay.length} event(s) on ${dateToRemove.format('MMM D, YYYY')} when you save. Continue?`)) {
+        return;
+      }
+      
+      setTempStartDate(moment(tempStartDate).add(1, 'day').format('YYYY-MM-DD'));
+    } else {
+      const dateToRemove = moment(tempEndDate);
+      const eventsOnDay = events.filter(e => 
+        moment(e.start).format('YYYY-MM-DD') === dateToRemove.format('YYYY-MM-DD')
+      );
+      
+      if (eventsOnDay.length > 0 && 
+          !window.confirm(`This will delete ${eventsOnDay.length} event(s) on ${dateToRemove.format('MMM D, YYYY')} when you save. Continue?`)) {
+        return;
+      }
+      
+      setTempEndDate(moment(tempEndDate).subtract(1, 'day').format('YYYY-MM-DD'));
+    }
+  };
+  
+  const handleSave = () => {
+    if (!tripName.trim()) {
+      alert("Trip name is required.");
+      return;
+    }
+    
+    onSaveChanges({
+      ...currentTrip,
+      name: tripName,
+      description: tripDescription,
+      start: tempStartDate,
+      end: tempEndDate
+    });
+    onClose();
+  };
+
+  const handleCancel = () => {
+    // Reset to original values
+    setTripName(currentTrip.name || '');
+    setTripDescription(currentTrip.description || '');
+    setTempStartDate(currentTrip.start);
+    setTempEndDate(currentTrip.end);
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (window.confirm(`Are you sure you want to delete "${currentTrip.name}"? This will permanently delete all events in this trip.`)) {
+      onDeleteTrip(currentTrip._id);
+    }
+  };
 
   return (
     <dialog className="modal modal-open">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg mb-4">Manage Trip Days</h3>
+      <div className="modal-box max-w-2xl">
+        <h3 className="font-bold text-lg mb-4">Manage Trip</h3>
         
         <div className="space-y-4">
           <div className="bg-base-200 p-4 rounded-lg">
-            <p className="text-sm text-base-content/70">Current Duration</p>
+            <h4 className="font-semibold mb-3">Trip Details</h4>
+            
+            <div className="form-control w-full mb-4">
+              <label className="label">
+                <span className="label-text">Trip Name</span>
+              </label>
+              <input 
+                type="text" 
+                placeholder="Enter trip name" 
+                className="input input-bordered w-full"
+                value={tripName}
+                onChange={(e) => setTripName(e.target.value)}
+              />
+            </div>
+
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Description</span>
+              </label>
+              <textarea 
+                className="textarea textarea-bordered w-full" 
+                placeholder="Enter trip description"
+                value={tripDescription}
+                onChange={(e) => setTripDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <div className="bg-base-200 p-4 rounded-lg">
+            <h4 className="font-semibold mb-3">Trip Duration</h4>
             <p className="text-2xl font-bold">{duration} days</p>
             <p className="text-sm text-base-content/70 mt-2">
               {tripStart.format('MMM D, YYYY')} - {tripEnd.format('MMM D, YYYY')}
@@ -301,14 +414,14 @@ const DayManagementModal = ({ isOpen, onClose, currentTrip, onAddDay, onRemoveDa
 
           <div className="flex gap-4">
             <button 
-              onClick={() => onAddDay('start')}
+              onClick={() => handleAddDay('start')}
               className="btn btn-outline flex-1"
             >
               <PlusIcon size={16}/>
               Add Day at Start
             </button>
             <button 
-              onClick={() => onAddDay('end')}
+              onClick={() => handleAddDay('end')}
               className="btn btn-outline flex-1"
             >
               <PlusIcon size={16}/>
@@ -318,7 +431,7 @@ const DayManagementModal = ({ isOpen, onClose, currentTrip, onAddDay, onRemoveDa
 
           <div className="flex gap-4">
             <button 
-              onClick={() => onRemoveDay('start')}
+              onClick={() => handleRemoveDay('start')}
               className="btn btn-outline btn-error flex-1"
               disabled={duration <= 1}
             >
@@ -326,7 +439,7 @@ const DayManagementModal = ({ isOpen, onClose, currentTrip, onAddDay, onRemoveDa
               Remove from Start
             </button>
             <button 
-              onClick={() => onRemoveDay('end')}
+              onClick={() => handleRemoveDay('end')}
               className="btn btn-outline btn-error flex-1"
               disabled={duration <= 1}
             >
@@ -340,13 +453,22 @@ const DayManagementModal = ({ isOpen, onClose, currentTrip, onAddDay, onRemoveDa
               <span className="text-sm">Trip must have at least 1 day</span>
             </div>
           )}
+
+          <button 
+            onClick={handleDelete}
+            className="btn btn-error btn-outline w-full"
+          >
+            <TrashIcon size={16} />
+            Delete Trip
+          </button>
         </div>
 
         <div className="modal-action">
-          <button onClick={onClose} className="btn btn-primary">Done</button>
+          <button onClick={handleCancel} className="btn">Cancel</button>
+          <button onClick={handleSave} className="btn btn-primary">Save</button>
         </div>
       </div>
-      <div className="modal-backdrop" onClick={onClose}></div>
+      <div className="modal-backdrop" onClick={handleCancel}></div>
     </dialog>
   );
 };
@@ -356,7 +478,7 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showDayModal, setShowDayModal] = useState(false);
+  const [showTripModal, setShowTripModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [localTrip, setLocalTrip] = useState(currentTrip);
 
@@ -385,7 +507,7 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
               start: new Date(event.start),
               end: new Date(event.end)
             }))
-            .sort((a, b) => a.start - b.start); // Auto-sort by start time
+            .sort((a, b) => a.start - b.start);
           
           setEvents(sortedEvents);
           setError(null);
@@ -495,69 +617,79 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
     setShowModal(false);
     setSelectedEvent(null);
   };
+  
+  const handleUpdateTrip = async (updatedTrip) => {
+    try {
+      // Determine which dates were removed
+      const originalStart = moment(localTrip.start);
+      const originalEnd = moment(localTrip.end);
+      const newStart = moment(updatedTrip.start);
+      const newEnd = moment(updatedTrip.end);
 
-  const handleAddDay = (position) => {
-    const newTrip = { ...localTrip };
-    if (position === 'start') {
-      newTrip.start = moment(localTrip.start).subtract(1, 'day').format('YYYY-MM-DD');
-    } else {
-      newTrip.end = moment(localTrip.end).add(1, 'day').format('YYYY-MM-DD');
+      // Find events to delete (events outside the new date range)
+      const eventsToDelete = events.filter(event => {
+        const eventDate = moment(event.start);
+        return eventDate.isBefore(newStart, 'day') || eventDate.isAfter(newEnd, 'day');
+      });
+
+      // Delete events outside the new range
+      for (const event of eventsToDelete) {
+        await fetch(url + "/events/" + event._id, { 
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Update events state
+      setEvents(prev => prev.filter(event => {
+        const eventDate = moment(event.start);
+        return !eventDate.isBefore(newStart, 'day') && !eventDate.isAfter(newEnd, 'day');
+      }));
+      const response = await fetch(url + "/calendars/" + updatedTrip._id, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          owner: updatedTrip.owner,
+          name: updatedTrip.name,
+          start: updatedTrip.start,
+          end: updatedTrip.end,
+          description: updatedTrip.description,
+          members: updatedTrip.members
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setLocalTrip(updatedTrip);
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError('Failed to update trip');
     }
-    setLocalTrip(newTrip);
-    // Here you would also want to update the backend
   };
 
-  const handleRemoveDay = (position) => {
-    const start = moment(localTrip.start);
-    const end = moment(localTrip.end);
-    const duration = end.diff(start, 'days');
-    
-    if (duration < 1) return;
+  const handleDeleteTrip = async (tripId) => {
+    try {
+      const response = await fetch(url + "/calendars/" + tripId, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
 
-    const newTrip = { ...localTrip };
-    if (position === 'start') {
-      const newStart = moment(localTrip.start).add(1, 'day');
-      const eventsOnDay = events.filter(e => 
-        moment(e.start).format('YYYY-MM-DD') === start.format('YYYY-MM-DD')
-      );
-      
-      if (eventsOnDay.length > 0 && 
-          !window.confirm(`This will delete ${eventsOnDay.length} event(s) on ${start.format('MMM D, YYYY')}. Continue?`)) {
-        return;
+      const data = await response.json();
+      if (data.success) {
+        setCurrentPage('trips');
+      } else {
+        setError(data.message);
       }
-      
-      newTrip.start = newStart.format('YYYY-MM-DD');
-      
-      // Delete events on removed day
-      eventsOnDay.forEach(event => {
-        fetch(url + "/events/" + event._id, { method: 'DELETE' });
-      });
-      setEvents(prev => prev.filter(e => 
-        moment(e.start).format('YYYY-MM-DD') !== start.format('YYYY-MM-DD')
-      ));
-    } else {
-      const newEnd = moment(localTrip.end).subtract(1, 'day');
-      const eventsOnDay = events.filter(e => 
-        moment(e.start).format('YYYY-MM-DD') === end.format('YYYY-MM-DD')
-      );
-      
-      if (eventsOnDay.length > 0 && 
-          !window.confirm(`This will delete ${eventsOnDay.length} event(s) on ${end.format('MMM D, YYYY')}. Continue?`)) {
-        return;
-      }
-      
-      newTrip.end = newEnd.format('YYYY-MM-DD');
-      
-      // Delete events on removed day
-      eventsOnDay.forEach(event => {
-        fetch(url + "/events/" + event._id, { method: 'DELETE' });
-      });
-      setEvents(prev => prev.filter(e => 
-        moment(e.start).format('YYYY-MM-DD') !== end.format('YYYY-MM-DD')
-      ));
+    } catch (err) {
+      setError('Failed to delete trip');
     }
-    setLocalTrip(newTrip);
-    // Here you would also want to update the backend
+    setShowTripModal(false);
   };
 
   const generateDayCards = () => {
@@ -608,10 +740,10 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           </div>
           <div className="flex gap-2">
             <button 
-              onClick={() => setShowDayModal(true)} 
-              className="btn btn-outline gap-2"
+              onClick={() => setShowTripModal(true)} 
+              className="btn btn-primary gap-2"
             >
-              Manage Days
+              Manage Trip
             </button>
             <button 
               onClick={() => setCurrentPage('trips')} 
@@ -676,10 +808,10 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
                                   {moment(event.start).format('h:mm A')} - {moment(event.end).format('h:mm A')}
                                 </p>
                                 {event.location && (
-                                  <p className="text-xs text-base-content/60 mt-1">📍 {event.location}</p>
+                                  <p className="text-xs text-base-content/60 mt-1">{event.location}</p>
                                 )}
                                 {event.cost > 0 && (
-                                  <p className="text-xs text-base-content/60 mt-1">💵 ${event.cost.toFixed(2)}</p>
+                                  <p className="text-xs text-base-content/60 mt-1">${event.cost.toFixed(2)}</p>
                                 )}
                                 {event.details && (
                                   <p className="text-sm line-clamp-2 mt-2">{event.details}</p>
@@ -710,12 +842,13 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         eventInfo={selectedEvent}
       />
 
-      <DayManagementModal
-        isOpen={showDayModal}
-        onClose={() => setShowDayModal(false)}
+      <TripManagementModal
+        isOpen={showTripModal}
+        onClose={() => setShowTripModal(false)}
         currentTrip={localTrip}
-        onAddDay={handleAddDay}
-        onRemoveDay={handleRemoveDay}
+        events={events}
+        onSaveChanges={handleUpdateTrip}
+        onDeleteTrip={handleDeleteTrip}
       />
     </div>
   );

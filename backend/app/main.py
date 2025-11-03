@@ -212,6 +212,37 @@ async def create_calendar(trip: Trip):
     
     return {"success": True, "calendar": created_trip}
 
+@app.put("/calendars/{id}")
+async def update_calendar(id: str, trip: Trip):
+    from bson import ObjectId
+    update_data = {
+        "owner": trip.owner,
+        "name": trip.name,
+        "start": trip.start,
+        "end": trip.end,
+        "description": trip.description,
+        "members": trip.members
+    }
+    result = calendars.update_one({"_id": ObjectId(id)}, {"$set": update_data})
+    if result.matched_count == 1:
+        updated_trip = calendars.find_one({"_id": ObjectId(id)})
+        updated_trip["_id"] = str(updated_trip["_id"])
+        return {"success": True, "calendar": updated_trip}
+    return {"success": False, "message": "Calendar not found."}
+
+@app.delete("/calendars/{id}")
+async def delete_calendar(id: str):
+    from bson import ObjectId
+    result = calendars.delete_one({"_id": ObjectId(id)})
+
+    trip_events = list(events.find({"trip_id": id}))
+    for event in trip_events:
+        events.delete_one({"_id": ObjectId(event["_id"])})
+
+    if result.deleted_count == 1:
+        return {"success": True, "message": "Trip deleted successfully."}
+    return {"success": False, "message": "Trip not found."}
+
 @app.post("/events")
 async def create_event(event: Event):
     new_event = {

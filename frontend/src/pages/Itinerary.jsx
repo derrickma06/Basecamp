@@ -456,7 +456,7 @@ const TripManagementModal = ({ isOpen, onClose, currentTrip, events, onSaveChang
 
           <button 
             onClick={handleDelete}
-            className="btn btn-error btn-outline w-full"
+            className="btn btn-error w-full"
           >
             <TrashIcon size={16} />
             Delete Trip
@@ -803,18 +803,18 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
                                 {getEventIcon(event.type)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-base leading-tight">{event.title}</h3>
-                                <p className="text-sm text-base-content/70 mt-1">
+                                <h3 className="font-semibold text-neutral leading-tight">{event.title}</h3>
+                                <p className="text-sm text-neutral/60 mt-1">
                                   {moment(event.start).format('h:mm A')} - {moment(event.end).format('h:mm A')}
                                 </p>
                                 {event.location && (
-                                  <p className="text-xs text-base-content/60 mt-1">{event.location}</p>
+                                  <p className="text-xs text-neutral/60 mt-1">{event.location}</p>
                                 )}
                                 {event.cost > 0 && (
-                                  <p className="text-xs text-base-content/60 mt-1">${event.cost.toFixed(2)}</p>
+                                  <p className="text-xs text-neutral/60 mt-1">${event.cost.toFixed(2)}</p>
                                 )}
                                 {event.details && (
-                                  <p className="text-sm line-clamp-2 mt-2">{event.details}</p>
+                                  <p className="text-xs text-neutral/70 line-clamp-2 mt-1">{event.details}</p>
                                 )}
                               </div>
                             </div>

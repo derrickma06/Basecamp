@@ -11,6 +11,7 @@ const formatDisplayDate = (dateString) => {
 
 function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onLogout, setCurrentTrip }) {
   const [trips, setTrips] = useState([]);
+  const [invitations, setInvitations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,10 +24,14 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
 
   const url = "http://localhost:8000";
 
+  // Separate trips into owned and shared
+  const myTrips = trips.filter(trip => trip.owner === currentID);
+  const sharedTrips = trips.filter(trip => trip.owner !== currentID && trip.members.includes(currentID));
+
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const response = await fetch(url+'/calendars/'+currentID, {
+        const response = await fetch(url+'/calendars/users/'+currentID, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -50,8 +55,31 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
       }
     };
 
+    const fetchInvitations = async () => {
+      try {
+        const response = await fetch(url+'/invitations/'+currentID, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          setInvitations(data.invitations);
+        } else {
+          setInvitations([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch invitations:', err);
+        setInvitations([]);
+      }
+    };
+
     if (currentUser) {
       fetchTrips();
+      fetchInvitations();
     }
   }, [currentUser, currentID, url]);
 
@@ -90,6 +118,128 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
       setError('Failed to create trip');
     }
   };
+
+  const handleAcceptInvitation = async (invitationId, tripId) => {
+    try {
+      const response = await fetch(url+'/invitations/'+invitationId+'/accept', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove the invitation from the list
+        setInvitations(prev => prev.filter(inv => inv._id !== invitationId));
+        
+        // Fetch the trip and add it to the trips list
+        const tripResponse = await fetch(url+'/calendars/users/'+currentID, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        const tripData = await tripResponse.json();
+        if (tripData.success) {
+          setTrips(tripData.calendars);
+        }
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError('Failed to accept invitation');
+    }
+  };
+
+  const handleRejectInvitation = async (invitationId) => {
+    try {
+      const response = await fetch(url+'/invitations/'+invitationId+'/reject', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove the invitation from the list
+        setInvitations(prev => prev.filter(inv => inv._id !== invitationId));
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError('Failed to reject invitation');
+    }
+  };
+
+  const TripCard = ({ trip }) => (
+    <div 
+      key={trip._id} 
+      className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer" 
+      onClick={() => {
+        setCurrentTrip({
+          _id: trip._id,
+          name: trip.name,
+          start: trip.start,
+          end: trip.end,
+          description: trip.description,
+          owner: trip.owner,
+          members: trip.members
+        });
+        setCurrentPage('itinerary');
+      }}
+    >
+      <div className="card-body p-8">
+        <h2 className="card-title text-xl mb-3">{trip.name}</h2>
+        <p className="text-sm text-base-content/70 mb-4">
+          {formatDisplayDate(trip.start)} - {formatDisplayDate(trip.end)}
+        </p>
+        <p className="line-clamp-2 text-base-content/80">{trip.description}</p>
+      </div>
+    </div>
+  );
+
+  const InvitationCard = ({ invitation }) => (
+    <div className="card bg-base-100 shadow-xl border-2 border-primary">
+      <div className="card-body p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="card-title text-lg mb-2">{invitation.trip_name}</h3>
+            <p className="text-sm text-base-content/70 mb-2">
+              {formatDisplayDate(invitation.trip_start)} - {formatDisplayDate(invitation.trip_end)}
+            </p>
+            <p className="text-sm text-base-content/60">
+              Invited by <span className="font-semibold">{invitation.inviter_username}</span>
+            </p>
+          </div>
+        </div>
+        <div className="card-actions justify-end mt-4">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRejectInvitation(invitation._id);
+            }}
+            className="btn btn-ghost btn-sm"
+          >
+            Reject
+          </button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAcceptInvitation(invitation._id, invitation.trip_id);
+            }}
+            className="btn btn-primary btn-sm"
+          >
+            Accept
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div data-theme={theme} className="min-h-screen bg-base-200">
@@ -194,7 +344,7 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
           <div className="alert alert-error max-w-2xl mx-auto my-8">
             <span>{error}</span>
           </div>
-        ) : trips.length === 0 ? (
+        ) : trips.length === 0 && invitations.length === 0 ? (
           <div className="card bg-base-100 shadow-xl max-w-2xl mx-auto my-16">
             <div className="card-body text-center py-16">
               <h2 className="card-title justify-center text-2xl mb-4">No trips yet!</h2>
@@ -210,34 +360,57 @@ function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onL
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {trips.map((trip) => (
-              <div 
-                key={trip._id} 
-                className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer" 
-                onClick={() => {
-                  setCurrentTrip({
-                    _id: trip._id,
-                    name: trip.name,
-                    start: trip.start,
-                    end: trip.end,
-                    description: trip.description,
-                    owner: trip.owner,
-                    members: trip.members
-                  });
-                  setCurrentPage('itinerary');
-                  }
-                }
-              >
-                <div className="card-body p-8">
-                  <h2 className="card-title text-xl mb-3">{trip.name}</h2>
-                  <p className="text-sm text-base-content/70 mb-4">
-                    {formatDisplayDate(trip.start)} - {formatDisplayDate(trip.end)}
-                  </p>
-                  <p className="line-clamp-2 text-base-content/80">{trip.description}</p>
+          <div className="space-y-12">
+            {/* Pending Invitations Section */}
+            {invitations.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-base-content mb-6">
+                  Pending Invitations
+                  <span className="ml-3 badge badge-primary badge-lg">{invitations.length}</span>
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {invitations.map((invitation) => (
+                    <InvitationCard key={invitation._id} invitation={invitation} />
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* My Trips Section */}
+            <div>
+              <h2 className="text-2xl font-bold text-base-content mb-6">My Trips</h2>
+              {myTrips.length === 0 ? (
+                <div className="card bg-base-100 shadow-md">
+                  <div className="card-body text-center py-8">
+                    <p className="text-base-content/70">You haven't created any trips yet.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {myTrips.map((trip) => (
+                    <TripCard key={trip._id} trip={trip} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Shared With Me Section */}
+            <div>
+              <h2 className="text-2xl font-bold text-base-content mb-6">Shared With Me</h2>
+              {sharedTrips.length === 0 ? (
+                <div className="card bg-base-100 shadow-md">
+                  <div className="card-body text-center py-8">
+                    <p className="text-base-content/70">No trips have been shared with you yet.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {sharedTrips.map((trip) => (
+                    <TripCard key={trip._id} trip={trip} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

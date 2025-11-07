@@ -96,50 +96,50 @@ function Profile({ setCurrentPage, theme, toggleTheme, currentUser, setCurrentUs
   };
 
   const handlePasswordChange = async (e) => {
-  e.preventDefault();
-  
-  // Reset error states
-  setPasswordError('');
-  
-  // Validate passwords
-  if (passwords.newPassword !== passwords.confirmPassword) {
-    setPasswordError('New passwords do not match');
-    return;
-  }
-
-  if (passwords.currentPassword === passwords.newPassword) {
-    setPasswordError('New password must be different from current password');
-    return;
-  }
-
-  try {
-    const response = await fetch(`${url}/update-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        username: currentUser,
-        currentPassword: passwords.currentPassword,
-        newPassword: passwords.newPassword
-      })
-    });
-
-    const data = await response.json();
+    e.preventDefault();
     
-    if (data.success) {
-      setPasswordError('Password updated successfully!');
-      setPasswords({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      setIsEditing(false);
-    } else {
-        setPasswordError(data.message);
+    // Reset error states
+    setPasswordError('');
+    
+    // Validate passwords
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
     }
-  } catch (err) {
-      setPasswordError('Failed to update password');
+
+    if (passwords.currentPassword === passwords.newPassword) {
+      setPasswordError('New password must be different from current password');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${url}/profiles/password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: currentUser,
+          currentPassword: passwords.currentPassword,
+          newPassword: passwords.newPassword
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setPasswordError('Password updated successfully!');
+        setPasswords({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setIsEditing(false);
+      } else {
+          setPasswordError(data.message);
+      }
+    } catch (err) {
+        setPasswordError('Failed to update password');
     }
   };
 

@@ -276,6 +276,105 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
   );
 };
 
+const InviteModal = ({ isOpen, onClose, currentTrip, currentID }) => {
+  const [username, setUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
+
+  const url = "http://localhost:8000";
+
+  useEffect(() => {
+    if (!isOpen) {
+      setUsername('');
+      setMessage('');
+      setMessageType('');
+    }
+  }, [isOpen]);
+
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch(url + '/invitations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          trip_id: currentTrip._id,
+          inviter_id: currentID,
+          invitee_username: username
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage('Invitation sent successfully!');
+        setMessageType('success');
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } else {
+        setMessage(data.message);
+        setMessageType('error');
+      }
+    } catch (err) {
+      setMessage('Failed to send invitation');
+      setMessageType('error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <dialog className="modal modal-open">
+      <div className="modal-box">
+        <h3 className="font-bold text-lg mb-4">Invite User to Trip</h3>
+        <p className="text-base-content/70 mb-4">Invite someone to join "{currentTrip?.name}"</p>
+        
+        <form onSubmit={handleInvite}>
+          <div className="form-control w-full">
+            <label className="label">
+              <span className="label-text">Username</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Enter username" 
+              className="input input-bordered w-full"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          {message && (
+            <div className={`alert ${messageType === 'success' ? 'alert-success' : 'alert-error'} mt-4`}>
+              <span>{message}</span>
+            </div>
+          )}
+
+          <div className="modal-action">
+            <button type="button" onClick={onClose} className="btn" disabled={isLoading}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={isLoading}>
+              {isLoading ? <span className="loading loading-spinner"></span> : 'Send Invite'}
+            </button>
+          </div>
+        </form>
+      </div>
+      <div className="modal-backdrop" onClick={onClose}></div>
+    </dialog>
+  );
+};
+
 const TripManagementModal = ({ isOpen, onClose, currentTrip, events, onSaveChanges, onDeleteTrip }) => {
   const [tripName, setTripName] = useState('');
   const [tripDescription, setTripDescription] = useState('');
@@ -479,10 +578,14 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showTripModal, setShowTripModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [localTrip, setLocalTrip] = useState(currentTrip);
 
   const url = "http://localhost:8000";
+
+  // Check if current user is the owner
+  const isOwner = localTrip?.owner === currentID;
 
   useEffect(() => {
     setLocalTrip(currentTrip);
@@ -739,12 +842,22 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
             </p>
           </div>
           <div className="flex gap-2">
-            <button 
-              onClick={() => setShowTripModal(true)} 
-              className="btn btn-primary gap-2"
-            >
-              Manage Trip
-            </button>
+            {isOwner && (
+              <>
+                <button 
+                  onClick={() => setShowInviteModal(true)} 
+                  className="btn btn-accent gap-2"
+                >
+                  Invite User
+                </button>
+                <button 
+                  onClick={() => setShowTripModal(true)} 
+                  className="btn btn-primary gap-2"
+                >
+                  Manage Trip
+                </button>
+              </>
+            )}
             <button 
               onClick={() => setCurrentPage('trips')} 
               className="btn btn-ghost"
@@ -763,7 +876,7 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
             <span>{error}</span>
           </div>
         ) : (
-          <div className="overflow-x-auto flex gap-6 pb-6 snap-x snap-mandatory">
+          <div className="overflow-x-auto flex gap-6 pl-6 pr-6 pb-6 snap-x snap-mandatory">
             {generateDayCards().map(({ date, events: dayEvents }) => (
               <div 
                 key={date.format('YYYY-MM-DD')}
@@ -849,6 +962,13 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         events={events}
         onSaveChanges={handleUpdateTrip}
         onDeleteTrip={handleDeleteTrip}
+      />
+
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        currentTrip={localTrip}
+        currentID={currentID}
       />
     </div>
   );

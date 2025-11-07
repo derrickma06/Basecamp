@@ -14,7 +14,9 @@ function Login({ setCurrentPage, theme, setCurrentID, setCurrentUser }) {
     setCurrentPage('trips');
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault(); // Prevent form from refreshing the page
+
     try {
       // POST to the /login endpoint
       const response = await fetch(url+"/login", {
@@ -50,33 +52,36 @@ function Login({ setCurrentPage, theme, setCurrentID, setCurrentUser }) {
         {/* Login form */}
         <div className="bg-base-100 p-8 rounded-lg shadow-md w-96">
           <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-          <div className="mb-4">
-            <label className="block mb-1">Username</label>
-            <input
-              type="text"
-              className="input input-bordered w-full"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-1">Password</label>
-            <input
-              type="password"
-              className="input input-bordered w-full"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-            />
-          </div>
-          <button onClick={handleLogin} className="btn btn-primary w-full mb-4">
-            Sign In
-          </button>
+          <form onSubmit={handleLogin}>
+            <div className="mb-4">
+              <label className="block mb-1">Username</label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1">Password</label>
+              <input
+                type="password"
+                className="input input-bordered w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+              />
+            </div>
+            <button type="submit" className="btn btn-primary w-full mb-4">
+              Sign In
+            </button>
+          </form>
 
           <button 
             onClick={() => setCurrentPage("signup")} 
             className="btn btn-link w-full"
+            type="button"
           >
             Don't have an account? Sign up here
           </button>

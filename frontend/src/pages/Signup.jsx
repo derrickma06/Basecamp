@@ -11,7 +11,9 @@ function Signup({ setCurrentPage, theme, setCurrentUser, setCurrentID }) {
 
   const url = "http://localhost:8000";
 
-  const handleSignup = async () => {
+  const handleSignup = async (e) => {
+    e.preventDefault(); // Prevent form from refreshing the page
+
     if (!username || !password || !firstName || !lastName || !email) {
       setMessage("Please fill in all fields.");
       return;
@@ -66,82 +68,85 @@ function Signup({ setCurrentPage, theme, setCurrentUser, setCurrentID }) {
         <div className="bg-base-100 p-8 rounded-lg shadow-md w-[32rem]">
           <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block mb-1">First Name</label>
-              <input
-                type="text"
-                className="input input-bordered w-full"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Enter first name"
-              />
+          <form onSubmit={handleSignup}>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block mb-1">First Name</label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div>
+                <label className="block mb-1">Last Name</label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Enter last name"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block mb-1">Last Name</label>
-              <input
-                type="text"
-                className="input input-bordered w-full"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Enter last name"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block mb-1">Username</label>
-              <input
-                type="text"
-                className="input input-bordered w-full"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-              />
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block mb-1">Username</label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
+                />
+              </div>
+              <div>
+                <label className="block mb-1">Email</label>
+                <input
+                  type="email"
+                  className="input input-bordered w-full"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter email"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block mb-1">Email</label>
-              <input
-                type="email"
-                className="input input-bordered w-full"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter email"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block mb-1">Password</label>
-              <input
-                type="password"
-                className="input input-bordered w-full"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-              />
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block mb-1">Password</label>
+                <input
+                  type="password"
+                  className="input input-bordered w-full"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                />
+              </div>
+              <div>
+                <label className="block mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  className="input input-bordered w-full"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm password"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block mb-1">Confirm Password</label>
-              <input
-                type="password"
-                className="input input-bordered w-full"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm password"
-              />
-            </div>
-          </div>
 
-          <button onClick={handleSignup} className="btn btn-primary w-full mb-4">
-            Sign Up
-          </button>
+            <button type="submit" className="btn btn-primary w-full mb-4">
+              Sign Up
+            </button>
+          </form>
 
           <button 
             onClick={() => setCurrentPage("login")} 
             className="btn btn-link w-full"
+            type="button"
           >
             Have an existing account? Login instead
           </button>

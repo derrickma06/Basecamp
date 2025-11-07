@@ -135,6 +135,20 @@ async def update_profile(profile: Profile):
     
     return {"success": True, "message": "Profile updated successfully."}
 
+@app.get("/profiles/id/{user_id}")
+async def get_profile_by_id(user_id: str):
+    from bson import ObjectId
+    try:
+        user = users.find_one({"_id": ObjectId(user_id)})
+        
+        if user:
+            user["_id"] = str(user["_id"])
+            return {"success": True, "profile": user}
+        
+        return {"success": False, "message": "User not found."}
+    except:
+        return {"success": False, "message": "Invalid user ID."}
+
 @app.post("/profiles/password")
 async def update_password(password_data: PasswordUpdate):
     username = password_data.username
@@ -440,3 +454,24 @@ async def reject_invitation(invitation_id: str):
     if result.deleted_count == 1:
         return {"success": True, "message": "Invitation rejected."}
     return {"success": False, "message": "Invitation not found."}
+
+@app.get("/invitations/trip/{trip_id}")
+async def get_trip_invitations(trip_id: str):
+    # Get all invitations for a specific trip
+    trip_invitations = list(invitations.find({
+        "trip_id": trip_id
+    }))
+    
+    # Enrich invitations with invitee details
+    enriched_invitations = []
+    for inv in trip_invitations:
+        from bson import ObjectId
+        invitee = users.find_one({"_id": ObjectId(inv["invitee_id"])})
+        
+        if invitee:
+            inv["_id"] = str(inv["_id"])
+            inv["invitee_username"] = invitee["username"]
+            enriched_invitations.append(inv)
+    
+    return {"success": True, "invitations": enriched_invitations}
+

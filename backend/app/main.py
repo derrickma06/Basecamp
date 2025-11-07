@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 import os
 
 # Create Pydantic models for request validation
@@ -59,6 +59,11 @@ class PasswordUpdate(BaseModel):
     currentPassword: str
     newPassword: str
 
+class Invitation(BaseModel):
+    trip_id: str
+    inviter_id: str
+    invitee_username: str
+
 app = FastAPI()
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://TripSync:1a2qYb9vOavPeMtw@tripsync.kl0if1g.mongodb.net/")
@@ -68,6 +73,7 @@ users = logins["Accounts"]
 trips = client["Trips"]
 calendars = trips["Calendars"]
 events = trips["Events"]
+invitations = trips["Invitations"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -129,6 +135,32 @@ async def update_profile(profile: Profile):
     
     return {"success": True, "message": "Profile updated successfully."}
 
+@app.post("/profiles/password")
+async def update_password(password_data: PasswordUpdate):
+    username = password_data.username
+    current_password = password_data.currentPassword
+    new_password = password_data.newPassword
+
+    # Find the user
+    user = users.find_one({"username": username})
+
+    if not user:
+        return {"success": False, "message": "User not found"}
+
+    # Verify current password
+    if user["password"] != current_password:
+        return {"success": False, "message": "Current password is incorrect"}
+
+    # Update the password
+    result = users.update_one(
+        {"username": username},
+        {"$set": {"password": new_password}}
+    )
+
+    if result.modified_count == 1:
+        return {"success": True, "message": "Password updated successfully"}
+    return {"success": False, "message": "Failed to update password"}
+
 @app.post("/login")
 async def login(credentials: LoginCredentials):
     username = credentials.username
@@ -178,10 +210,15 @@ async def signup(credentials: UserCredentials):
 
     return {"success": True, "message": "Signup successful!", "id": str(result.inserted_id)}
 
-@app.get("/calendars/{id}")
+@app.get("/calendars/users/{id}")
 async def get_calendars(id: str):    
-    # Find all calendar documents associated with the user id
-    user_calendars = list(calendars.find({"owner": id}))
+    # Find all calendar documents where user is owner or member
+    user_calendars = list(calendars.find({
+        "$or": [
+            {"owner": id},
+            {"members": id}
+        ]
+    }))
     
     # Convert ObjectId to string for JSON serialization
     for calendar in user_calendars:
@@ -238,6 +275,8 @@ async def delete_calendar(id: str):
     trip_events = list(events.find({"trip_id": id}))
     for event in trip_events:
         events.delete_one({"_id": ObjectId(event["_id"])})
+    # Delete any pending invitations for this trip
+    invitations.delete_many({"trip_id": id})
 
     if result.deleted_count == 1:
         return {"success": True, "message": "Trip deleted successfully."}
@@ -304,3 +343,100 @@ async def update_event(event_id: str, event: Event):
         updated_event["_id"] = str(updated_event["_id"])
         return {"success": True, "event": updated_event}
     return {"success": False, "message": "Event not found."}
+
+# Invitation endpoints
+@app.post("/invitations")
+async def create_invitation(invitation: Invitation):
+    # Check if invitee exists
+    invitee = users.find_one({"username": invitation.invitee_username})
+    if not invitee:
+        return {"success": False, "message": "User not found."}
+    
+    invitee_id = str(invitee["_id"])
+    
+    # Check if invitation already exists
+    existing = invitations.find_one({
+        "trip_id": invitation.trip_id,
+        "invitee_id": invitee_id
+    })
+    if existing:
+        return {"success": False, "message": "Invitation already sent."}
+    
+    # Check if user is already a member
+    from bson import ObjectId
+    trip = calendars.find_one({"_id": ObjectId(invitation.trip_id)})
+    if trip and invitee_id in trip.get("members", []):
+        return {"success": False, "message": "User is already a member of this trip."}
+    
+    # Create invitation
+    new_invitation = {
+        "trip_id": invitation.trip_id,
+        "inviter_id": invitation.inviter_id,
+        "invitee_id": invitee_id,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    
+    result = invitations.insert_one(new_invitation)
+    created_invitation = invitations.find_one({"_id": result.inserted_id})
+    created_invitation["_id"] = str(created_invitation["_id"])
+    
+    return {"success": True, "invitation": created_invitation}
+
+@app.get("/invitations/{user_id}")
+async def get_invitations(user_id: str):
+    # Get all invitations for the user
+    user_invitations = list(invitations.find({
+        "invitee_id": user_id
+    }))
+    
+    from bson import ObjectId
+    # Enrich invitations with trip and inviter details
+    enriched_invitations = []
+    for inv in user_invitations:
+        trip = calendars.find_one({"_id": ObjectId(inv["trip_id"])})
+        inviter = users.find_one({"_id": ObjectId(inv["inviter_id"])})
+        
+        if trip and inviter:
+            inv["_id"] = str(inv["_id"])
+            inv["trip_name"] = trip["name"]
+            inv["trip_start"] = trip["start"]
+            inv["trip_end"] = trip["end"]
+            inv["inviter_username"] = inviter["username"]
+            enriched_invitations.append(inv)
+    
+    return {"success": True, "invitations": enriched_invitations}
+
+@app.post("/invitations/{invitation_id}/accept")
+async def accept_invitation(invitation_id: str):
+    from bson import ObjectId
+    
+    invitation = invitations.find_one({"_id": ObjectId(invitation_id)})
+    if not invitation:
+        return {"success": False, "message": "Invitation not found."}
+    
+    # Add user to trip members
+    trip_id = invitation["trip_id"]
+    invitee_id = invitation["invitee_id"]
+    
+    result = calendars.update_one(
+        {"_id": ObjectId(trip_id)},
+        {"$addToSet": {"members": invitee_id}}
+    )
+    
+    # Delete the invitation
+    invitations.delete_one({"_id": ObjectId(invitation_id)})
+    
+    if result.matched_count == 1:
+        return {"success": True, "message": "Invitation accepted."}
+    return {"success": False, "message": "Failed to accept invitation."}
+
+@app.post("/invitations/{invitation_id}/reject")
+async def reject_invitation(invitation_id: str):
+    from bson import ObjectId
+    
+    # Delete the invitation
+    result = invitations.delete_one({"_id": ObjectId(invitation_id)})
+    
+    if result.deleted_count == 1:
+        return {"success": True, "message": "Invitation rejected."}
+    return {"success": False, "message": "Invitation not found."}

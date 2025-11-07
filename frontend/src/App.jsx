@@ -5,7 +5,6 @@ import Signup from './pages/Signup';
 import Itinerary from './pages/Itinerary';
 import Trips from './pages/Trips';
 import Profile from './pages/Profile';
-import Events from './pages/Events';
 
 function App() {
   const [currentPage, setCurrentPage] = useState(() => {
@@ -70,7 +69,7 @@ function App() {
     if (window.confirm('Are you sure you want to log out?')) {
       setCurrentUser(null);
       setCurrentID(null);
-      setSelectedTripId(null);
+      setCurrentTrip(null);
       setCurrentPage('home');
     }
   };
@@ -108,20 +107,6 @@ function App() {
         currentID={currentID}
         onLogout={handleLogout}
         setCurrentTrip={setCurrentTrip}
-      />
-    );
-  }
-
-  if (currentPage === 'events') {
-    return (
-      <Events 
-        setCurrentPage={setCurrentPage}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        currentUser={currentUser}
-        currentID={currentID}
-        onLogout={handleLogout}
-        currentTrip={currentTrip}
       />
     );
   }

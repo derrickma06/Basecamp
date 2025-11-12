@@ -53,6 +53,7 @@ class Event(BaseModel):
     location: str
     cost: float
     details: str
+    votes: list = []
 
 class PasswordUpdate(BaseModel):
     username: str
@@ -307,7 +308,8 @@ async def create_event(event: Event):
         "type": event.type,
         "location": event.location,
         "cost": event.cost,
-        "details": event.details
+        "details": event.details,
+        "votes": event.votes
     }
     result = events.insert_one(new_event)
 
@@ -349,7 +351,8 @@ async def update_event(event_id: str, event: Event):
         "type": event.type,
         "location": event.location,
         "cost": event.cost,
-        "details": event.details
+        "details": event.details,
+        "votes": event.votes
     }
     result = events.update_one({"_id": ObjectId(event_id)}, {"$set": update_data})
     if result.matched_count == 1:

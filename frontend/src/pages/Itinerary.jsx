@@ -5,17 +5,20 @@ import EventModal from '../components/EventModal';
 import VotingModal from '../components/VotingModal';
 import MembersModal from '../components/MembersModal';
 import TripManagementModal from '../components/TripManagementModal';
+import CostTrackingModal from '../components/CostTrackingModal';
 import { getEventIcon, getEventColor, getConflictingEvents, getLeadingEvent, getConflictGroups } from '../utils/eventUtils';
 import moment from 'moment';
 
 function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID, currentTrip, onLogout }) {
   const [events, setEvents] = useState([]);
+  const [tripMembers, setTripMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showTripModal, setShowTripModal] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showVotingModal, setShowVotingModal] = useState(false);
+  const [showCostModal, setShowCostModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [conflictGroups, setConflictGroups] = useState([]);
   const [localTrip, setLocalTrip] = useState(currentTrip);
@@ -28,24 +31,27 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
   }, [currentTrip]);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(url + "/events/trip/" + localTrip._id, {
+        // Fetch events
+        const eventsResponse = await fetch(url + "/events/trip/" + localTrip._id, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           }
         });
         
-        const data = await response.json();
+        const eventsData = await eventsResponse.json();
         
-        if (data.success) {
-          const sortedEvents = data.events
+        if (eventsData.success) {
+          const sortedEvents = eventsData.events
             .map(event => ({
               ...event,
               start: new Date(event.start),
               end: new Date(event.end),
-              votes: event.votes || []
+              votes: event.votes || [],
+              costAssignments: event.costAssignments || {},
+              payments: event.payments || {}
             }))
             .sort((a, b) => a.start - b.start);
           
@@ -55,8 +61,27 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           setError(null);
           setEvents([]);
         }
+
+        // Fetch trip members
+        const memberPromises = localTrip.members.map(async (memberId) => {
+          const response = await fetch(url + '/profiles/id/' + memberId, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          const data = await response.json();
+          if (data.success) {
+            return data.profile;
+          }
+          return null;
+        });
+
+        const memberDetails = await Promise.all(memberPromises);
+        setTripMembers(memberDetails.filter(m => m !== null));
+
       } catch (err) {
-        setError('Failed to fetch events');
+        setError('Failed to fetch data');
         setEvents([]);
       } finally {
         setIsLoading(false);
@@ -64,9 +89,26 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
     };
 
     if (localTrip) {
-      fetchEvents();
+      fetchData();
     }
   }, [localTrip, url]);
+
+  const getUserTotalCost = () => {
+    let total = 0;
+    events.forEach(event => {
+      if (event.cost > 0 && event.costAssignments?.[currentID]) {
+        const assignedCount = Object.values(event.costAssignments).filter(assigned => assigned).length;
+        if (assignedCount > 0) {
+          total += event.cost / assignedCount;
+        }
+      }
+    });
+    return total;
+  };
+
+  const getTripTotalCost = () => {
+    return events.reduce((sum, event) => sum + (event.cost || 0), 0);
+  };
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
@@ -81,7 +123,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
 
   const handleVote = async (eventId, conflictingEvs) => {
     try {
-      // Remove vote from all conflicting events
       for (const event of conflictingEvs) {
         if ((event.votes || []).includes(currentID) && event._id !== eventId) {
           const updatedVotes = event.votes.filter(id => id !== currentID);
@@ -100,7 +141,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         }
       }
 
-      // Add vote to selected event
       const selectedEvent = conflictingEvs.find(e => e._id === eventId);
       const currentVotes = selectedEvent.votes || [];
       const updatedVotes = currentVotes.includes(currentID) 
@@ -122,7 +162,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
 
       const data = await response.json();
       if (data.success) {
-        // Update events state
         setEvents(prev => prev.map(event => {
           const conflictingEvent = conflictingEvs.find(e => e._id === event._id);
           if (conflictingEvent) {
@@ -148,7 +187,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
 
   const handleRemoveVote = async (eventId, conflictingEvs) => {
     try {
-      // Find the event to remove vote from
       const selectedEvent = conflictingEvs.find(e => e._id === eventId);
       const currentVotes = selectedEvent.votes || [];
       const updatedVotes = currentVotes.filter(id => id !== currentID);
@@ -168,7 +206,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
 
       const data = await response.json();
       if (data.success) {
-        // Update events state
         setEvents(prev => prev.map(event => {
           if (event._id === eventId) {
             return {
@@ -184,6 +221,44 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
     }
   };
 
+  const handleMarkPaid = async (eventId, memberId, isPaid) => {
+    try {
+      const event = events.find(e => e._id === eventId);
+      const updatedPayments = {
+        ...event.payments,
+        [memberId]: isPaid
+      };
+
+      const response = await fetch(url + "/events/" + eventId, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...event,
+          start: moment(event.start).toISOString(),
+          end: moment(event.end).toISOString(),
+          payments: updatedPayments
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setEvents(prev => prev.map(e => {
+          if (e._id === eventId) {
+            return {
+              ...e,
+              payments: updatedPayments
+            };
+          }
+          return e;
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to update payment status:', err);
+    }
+  };
+
   const handleCreateEvent = async (eventData) => {
     try {
       const response = await fetch(url + "/events", {
@@ -195,7 +270,8 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           ...eventData,
           trip_id: localTrip._id,
           creator: currentID,
-          votes: []
+          votes: [],
+          payments: {}
         })
       });
 
@@ -206,7 +282,9 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           ...data.event,
           start: new Date(data.event.start),
           end: new Date(data.event.end),
-          votes: data.event.votes || []
+          votes: data.event.votes || [],
+          costAssignments: data.event.costAssignments || {},
+          payments: data.event.payments || {}
         };
         setEvents(prev => [...prev, newEvent].sort((a, b) => a.start - b.start));
       } else {
@@ -226,7 +304,11 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(eventData)
+        body: JSON.stringify({
+          ...eventData,
+          start: moment(eventData.start).toISOString(),
+          end: moment(eventData.end).toISOString()
+        })
       });
       const data = await response.json();
       if (data.success) {
@@ -234,7 +316,9 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           ...data.event,
           start: new Date(data.event.start),
           end: new Date(data.event.end),
-          votes: data.event.votes || []
+          votes: data.event.votes || [],
+          costAssignments: data.event.costAssignments || {},
+          payments: data.event.payments || {}
         };
         setEvents(prev => 
           prev.map(event => event._id === eventData._id ? updatedEvent : event)
@@ -396,6 +480,12 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           </div>
           <div className="flex gap-2">
             <button 
+              onClick={() => setShowCostModal(true)} 
+              className="btn btn-success gap-2"
+            >
+              Costs
+            </button>
+            <button 
               onClick={() => setShowMembersModal(true)} 
               className="btn btn-primary gap-2"
             >
@@ -415,6 +505,18 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
             >
               Back to Trips
             </button>
+          </div>
+        </div>
+
+        <div className="stats shadow mb-6">
+          <div className="stat">
+            <div className="stat-title">Your Total Cost</div>
+            <div className="stat-value text-success">${getUserTotalCost().toFixed(2)}</div>
+          </div>
+          
+          <div className="stat">
+            <div className="stat-title">Trip Total Cost</div>
+            <div className="stat-value text-primary">${getTripTotalCost().toFixed(2)}</div>
           </div>
         </div>
 
@@ -545,6 +647,8 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
         eventInfo={selectedEvent}
+        tripMembers={tripMembers}
+        currentID={currentID}
       />
 
       <TripManagementModal
@@ -573,6 +677,15 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         currentID={currentID}
         onVote={handleVote}
         onRemoveVote={handleRemoveVote}
+      />
+
+      <CostTrackingModal
+        isOpen={showCostModal}
+        onClose={() => setShowCostModal(false)}
+        events={events}
+        tripMembers={tripMembers}
+        currentID={currentID}
+        onMarkPaid={handleMarkPaid}
       />
     </div>
   );

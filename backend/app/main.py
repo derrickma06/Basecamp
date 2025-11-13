@@ -25,16 +25,6 @@ class Trip(BaseModel):
     description: str
     members: list
 
-class Event(BaseModel):
-    calendarId: str
-    name: str
-    date: str
-    startTime: str
-    endTime: str
-    description: str
-    location: str
-    creator: str
-
 class Profile(BaseModel):
     old_username: str
     username: str
@@ -54,6 +44,7 @@ class Event(BaseModel):
     cost: float
     details: str
     votes: list = []
+    payments: dict = {}
 
 class PasswordUpdate(BaseModel):
     username: str
@@ -309,7 +300,8 @@ async def create_event(event: Event):
         "location": event.location,
         "cost": event.cost,
         "details": event.details,
-        "votes": event.votes
+        "votes": event.votes,
+        "payments": event.payments
     }
     result = events.insert_one(new_event)
 
@@ -352,7 +344,8 @@ async def update_event(event_id: str, event: Event):
         "location": event.location,
         "cost": event.cost,
         "details": event.details,
-        "votes": event.votes
+        "votes": event.votes,
+        "payments": event.payments
     }
     result = events.update_one({"_id": ObjectId(event_id)}, {"$set": update_data})
     if result.matched_count == 1:

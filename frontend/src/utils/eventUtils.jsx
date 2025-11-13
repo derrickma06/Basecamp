@@ -39,13 +39,32 @@ export const getConflictingEvents = (event, dayEvents) => {
   );
 };
 
-export const getLeadingEvent = (conflictGroup) => {
-  if (conflictGroup.length === 0) return null;
+export const getLeadingEvent = (events) => {
+  if (!events || events.length === 0) return null;
   
-  const maxVotes = Math.max(...conflictGroup.map(e => (e.votes || []).length));
-  if (maxVotes === 0) return null;
+  let maxVotes = 0;
+  let leadingEvent = null;
+  let tieCount = 0;
   
-  return conflictGroup.find(e => (e.votes || []).length === maxVotes);
+  events.forEach(event => {
+    const voteCount = (event.votes || []).length;
+    
+    if (voteCount > maxVotes) {
+      maxVotes = voteCount;
+      leadingEvent = event;
+      tieCount = 1;
+    } else if (voteCount === maxVotes && voteCount > 0) {
+      tieCount++;
+    }
+  });
+  
+  // If there's a tie (more than one event with max votes), return null
+  if (tieCount > 1) {
+    return null;
+  }
+  
+  // Only return leading event if it has at least one vote
+  return maxVotes > 0 ? leadingEvent : null;
 };
 
 // Get all conflict groups for a day

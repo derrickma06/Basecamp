@@ -112,7 +112,8 @@ const VotingModal = ({ isOpen, onClose, conflictGroups, currentTrip, currentID, 
                     const voteCount = votes[event._id]?.length || 0;
                     const hasUserVoted = votes[event._id]?.includes(currentID);
                     const maxVotes = Math.max(...group.events.map(e => votes[e._id]?.length || 0));
-                    const isLeading = voteCount > 0 && voteCount === maxVotes;
+                    const eventsWithMaxVotes = group.events.filter(e => (votes[e._id]?.length || 0) === maxVotes);
+                    const isLeading = voteCount > 0 && voteCount === maxVotes && eventsWithMaxVotes.length === 1;
 
                     return (
                       <div 

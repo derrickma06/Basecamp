@@ -5,17 +5,20 @@ import EventModal from '../components/EventModal';
 import VotingModal from '../components/VotingModal';
 import MembersModal from '../components/MembersModal';
 import TripManagementModal from '../components/TripManagementModal';
+import CostTrackingModal from '../components/CostTrackingModal';
 import { getEventIcon, getEventColor, getConflictingEvents, getLeadingEvent, getConflictGroups } from '../utils/eventUtils';
 import moment from 'moment';
 
 function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID, currentTrip, onLogout }) {
   const [events, setEvents] = useState([]);
+  const [tripMembers, setTripMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showTripModal, setShowTripModal] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showVotingModal, setShowVotingModal] = useState(false);
+  const [showCostModal, setShowCostModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [conflictGroups, setConflictGroups] = useState([]);
   const [localTrip, setLocalTrip] = useState(currentTrip);
@@ -28,24 +31,27 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
   }, [currentTrip]);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(url + "/events/trip/" + localTrip._id, {
+        // Fetch events
+        const eventsResponse = await fetch(url + "/events/trip/" + localTrip._id, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           }
         });
         
-        const data = await response.json();
+        const eventsData = await eventsResponse.json();
         
-        if (data.success) {
-          const sortedEvents = data.events
+        if (eventsData.success) {
+          const sortedEvents = eventsData.events
             .map(event => ({
               ...event,
               start: new Date(event.start),
               end: new Date(event.end),
-              votes: event.votes || []
+              votes: event.votes || [],
+              costAssignments: event.cost_assignments || {},
+              payments: event.payments || {}
             }))
             .sort((a, b) => a.start - b.start);
           
@@ -55,8 +61,27 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           setError(null);
           setEvents([]);
         }
+
+        // Fetch trip members
+        const memberPromises = localTrip.members.map(async (memberId) => {
+          const response = await fetch(url + '/profiles/id/' + memberId, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          const data = await response.json();
+          if (data.success) {
+            return data.profile;
+          }
+          return null;
+        });
+
+        const memberDetails = await Promise.all(memberPromises);
+        setTripMembers(memberDetails.filter(m => m !== null));
+
       } catch (err) {
-        setError('Failed to fetch events');
+        setError('Failed to fetch data');
         setEvents([]);
       } finally {
         setIsLoading(false);
@@ -64,9 +89,26 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
     };
 
     if (localTrip) {
-      fetchEvents();
+      fetchData();
     }
   }, [localTrip, url]);
+
+  const getUserTotalCost = () => {
+    let total = 0;
+    events.forEach(event => {
+      if (event.cost > 0 && event.costAssignments?.[currentID]) {
+        const assignedCount = Object.values(event.costAssignments).filter(assigned => assigned).length;
+        if (assignedCount > 0) {
+          total += event.cost / assignedCount;
+        }
+      }
+    });
+    return total;
+  };
+
+  const getTripTotalCost = () => {
+    return events.reduce((sum, event) => sum + (event.cost || 0), 0);
+  };
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
@@ -81,7 +123,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
 
   const handleVote = async (eventId, conflictingEvs) => {
     try {
-      // Remove vote from all conflicting events
       for (const event of conflictingEvs) {
         if ((event.votes || []).includes(currentID) && event._id !== eventId) {
           const updatedVotes = event.votes.filter(id => id !== currentID);
@@ -100,7 +141,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         }
       }
 
-      // Add vote to selected event
       const selectedEvent = conflictingEvs.find(e => e._id === eventId);
       const currentVotes = selectedEvent.votes || [];
       const updatedVotes = currentVotes.includes(currentID) 
@@ -122,7 +162,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
 
       const data = await response.json();
       if (data.success) {
-        // Update events state
         setEvents(prev => prev.map(event => {
           const conflictingEvent = conflictingEvs.find(e => e._id === event._id);
           if (conflictingEvent) {
@@ -148,7 +187,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
 
   const handleRemoveVote = async (eventId, conflictingEvs) => {
     try {
-      // Find the event to remove vote from
       const selectedEvent = conflictingEvs.find(e => e._id === eventId);
       const currentVotes = selectedEvent.votes || [];
       const updatedVotes = currentVotes.filter(id => id !== currentID);
@@ -168,7 +206,6 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
 
       const data = await response.json();
       if (data.success) {
-        // Update events state
         setEvents(prev => prev.map(event => {
           if (event._id === eventId) {
             return {
@@ -184,6 +221,44 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
     }
   };
 
+  const handleMarkPaid = async (eventId, memberId, isPaid) => {
+    try {
+      const event = events.find(e => e._id === eventId);
+      const updatedPayments = {
+        ...event.payments,
+        [memberId]: isPaid
+      };
+
+      const response = await fetch(url + "/events/" + eventId, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...event,
+          start: moment(event.start).toISOString(),
+          end: moment(event.end).toISOString(),
+          payments: updatedPayments
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setEvents(prev => prev.map(e => {
+          if (e._id === eventId) {
+            return {
+              ...e,
+              payments: updatedPayments
+            };
+          }
+          return e;
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to update payment status:', err);
+    }
+  };
+
   const handleCreateEvent = async (eventData) => {
     try {
       const response = await fetch(url + "/events", {
@@ -195,7 +270,9 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           ...eventData,
           trip_id: localTrip._id,
           creator: currentID,
-          votes: []
+          cost_assignments: eventData.costAssignments || {},
+          votes: [],
+          payments: eventData.payments || {}
         })
       });
 
@@ -206,7 +283,9 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           ...data.event,
           start: new Date(data.event.start),
           end: new Date(data.event.end),
-          votes: data.event.votes || []
+          votes: data.event.votes || [],
+          costAssignments: data.event.cost_assignments || {},
+          payments: data.event.payments || {}
         };
         setEvents(prev => [...prev, newEvent].sort((a, b) => a.start - b.start));
       } else {
@@ -226,7 +305,13 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(eventData)
+        body: JSON.stringify({
+          ...eventData,
+          start: moment(eventData.start).toISOString(),
+          end: moment(eventData.end).toISOString(),
+          cost_assignments: eventData.costAssignments,
+          payments: eventData.payments
+        })
       });
       const data = await response.json();
       if (data.success) {
@@ -234,7 +319,9 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           ...data.event,
           start: new Date(data.event.start),
           end: new Date(data.event.end),
-          votes: data.event.votes || []
+          votes: data.event.votes || [],
+          costAssignments: data.event.cost_assignments || {},
+          payments: data.event.payments || {}
         };
         setEvents(prev => 
           prev.map(event => event._id === eventData._id ? updatedEvent : event)
@@ -396,6 +483,12 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
           </div>
           <div className="flex gap-2">
             <button 
+              onClick={() => setShowCostModal(true)} 
+              className="btn btn-success gap-2"
+            >
+              Costs
+            </button>
+            <button 
               onClick={() => setShowMembersModal(true)} 
               className="btn btn-primary gap-2"
             >
@@ -427,111 +520,125 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
             <span>{error}</span>
           </div>
         ) : (
-          <div className="overflow-x-auto flex gap-6 pl-6 pr-6 pb-6 snap-x snap-mandatory">
-            {generateDayCards().map(({ date, events: dayEvents }) => {
-              const conflictGroupsForDay = getConflictGroups(dayEvents);
-              const hasConflicts = conflictGroupsForDay.length > 0;
+          <>
+            <div className="overflow-x-auto flex gap-6 pl-6 pr-6 pb-6 snap-x snap-mandatory">
+              {generateDayCards().map(({ date, events: dayEvents }) => {
+                const conflictGroupsForDay = getConflictGroups(dayEvents);
+                const hasConflicts = conflictGroupsForDay.length > 0;
 
-              return (
-                <div 
-                  key={date.format('YYYY-MM-DD')}
-                  className="card bg-base-100 shadow-xl min-w-[320px] snap-center hover:shadow-2xl transition-shadow"
-                >
-                  <div className="card-body p-6">
-                    <h2 className="card-title justify-between">
-                      <div>
-                        <div className="text-lg font-bold">{date.format('ddd, MMM D')}</div>
-                        <div className="text-sm font-normal text-base-content/60">
-                          Day {date.diff(moment(localTrip.start), 'days') + 1}
+                return (
+                  <div 
+                    key={date.format('YYYY-MM-DD')}
+                    className="card bg-base-100 shadow-xl min-w-[320px] snap-center hover:shadow-2xl transition-shadow"
+                  >
+                    <div className="card-body p-6">
+                      <h2 className="card-title justify-between">
+                        <div>
+                          <div className="text-lg font-bold">{date.format('ddd, MMM D')}</div>
+                          <div className="text-sm font-normal text-base-content/60">
+                            Day {date.diff(moment(localTrip.start), 'days') + 1}
+                          </div>
                         </div>
-                      </div>
-                      <button 
-                        onClick={() => handleAddEvent(date)}
-                        className="btn btn-circle btn-sm btn-primary"
-                      >
-                        <PlusIcon size={16}/>
-                      </button>
-                    </h2>
-
-                    {hasConflicts && (
-                      <div className="flex items-center justify-between alert alert-warning py-2 mt-2">
-                        <span className="text-xs">{conflictGroupsForDay.length} time conflict{conflictGroupsForDay.length > 1 ? 's' : ''} detected</span>
                         <button 
-                          onClick={() => handleVoteClick(dayEvents)}
-                          className="btn btn-xs btn-warning"
+                          onClick={() => handleAddEvent(date)}
+                          className="btn btn-circle btn-sm btn-primary"
                         >
-                          Vote
+                          <PlusIcon size={16}/>
                         </button>
-                      </div>
-                    )}
-                    
-                    {dayEvents.length === 0 ? (
-                      <div className="text-center py-8 text-base-content/50">
-                        No events planned
-                      </div>
-                    ) : (
-                      <div className="space-y-3 mt-4">
-                        {dayEvents.map((event, index) => {
-                          const conflicts = getConflictingEvents(event, dayEvents);
-                          const hasConflict = conflicts.length > 0;
-                          const conflictGroup = hasConflict ? [event, ...conflicts] : [];
-                          const leadingEvent = getLeadingEvent(conflictGroup);
-                          const isWinning = leadingEvent && leadingEvent._id === event._id;
-                          const voteCount = (event.votes || []).length;
+                      </h2>
 
-                          return (
-                            <div 
-                              key={event._id || index}
-                              className={`card ${getEventColor(event.type, hasConflict)} border-2 cursor-pointer transition-all relative`}
-                              onClick={() => handleSelectEvent(event)}
-                            >
-                              {isWinning && hasConflict && (
-                                <div className="absolute top-2 right-2 z-10">
-                                  <span className="badge badge-success badge-sm gap-1">
-                                    <CheckIcon size={10} />
-                                    {voteCount} vote{voteCount !== 1 ? 's' : ''}
-                                  </span>
-                                </div>
-                              )}
-                              {hasConflict && !isWinning && voteCount > 0 && (
-                                <div className="absolute top-2 right-2 z-10">
-                                  <span className="badge badge-outline badge-sm">
-                                    {voteCount} vote{voteCount !== 1 ? 's' : ''}
-                                  </span>
-                                </div>
-                              )}
-                              <div className="card-body p-4">
-                                <div className="flex items-start gap-3">
-                                  <div className="mt-1">
-                                    {getEventIcon(event.type)}
+                      {hasConflicts && (
+                        <div className="flex items-center justify-between alert alert-warning py-2 mt-2">
+                          <span className="text-xs">{conflictGroupsForDay.length} time conflict{conflictGroupsForDay.length > 1 ? 's' : ''} detected</span>
+                          <button 
+                            onClick={() => handleVoteClick(dayEvents)}
+                            className="btn btn-xs btn-warning"
+                          >
+                            Vote
+                          </button>
+                        </div>
+                      )}
+                      
+                      {dayEvents.length === 0 ? (
+                        <div className="text-center py-8 text-base-content/50">
+                          No events planned
+                        </div>
+                      ) : (
+                        <div className="space-y-3 mt-4">
+                          {dayEvents.map((event, index) => {
+                            const conflicts = getConflictingEvents(event, dayEvents);
+                            const hasConflict = conflicts.length > 0;
+                            const conflictGroup = hasConflict ? [event, ...conflicts] : [];
+                            const leadingEvent = getLeadingEvent(conflictGroup);
+                            const isWinning = leadingEvent && leadingEvent._id === event._id;
+                            const voteCount = (event.votes || []).length;
+
+                            return (
+                              <div 
+                                key={event._id || index}
+                                className={`card ${getEventColor(event.type, hasConflict)} border-2 cursor-pointer transition-all relative`}
+                                onClick={() => handleSelectEvent(event)}
+                              >
+                                {isWinning && hasConflict && (
+                                  <div className="absolute top-2 right-2 z-10">
+                                    <span className="badge badge-success badge-sm gap-1">
+                                      <CheckIcon size={10} />
+                                      {voteCount} vote{voteCount !== 1 ? 's' : ''}
+                                    </span>
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h3 className="font-semibold text-neutral leading-tight">{event.title}</h3>
-                                    <p className="text-sm text-neutral/60 mt-1">
-                                      {moment(event.start).format('h:mm A')} - {moment(event.end).format('h:mm A')}
-                                    </p>
-                                    {event.location && (
-                                      <p className="text-xs text-neutral/60 mt-1">{event.location}</p>
-                                    )}
-                                    {event.cost > 0 && (
-                                      <p className="text-xs text-neutral/60 mt-1">${event.cost.toFixed(2)}</p>
-                                    )}
-                                    {event.details && (
-                                      <p className="text-xs text-neutral/70 line-clamp-2 mt-1">{event.details}</p>
-                                    )}
+                                )}
+                                {hasConflict && !isWinning && voteCount > 0 && (
+                                  <div className="absolute top-2 right-2 z-10">
+                                    <span className="badge badge-outline badge-sm">
+                                      {voteCount} vote{voteCount !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="card-body p-4">
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-1">
+                                      {getEventIcon(event.type)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-semibold text-neutral leading-tight">{event.title}</h3>
+                                      <p className="text-sm text-neutral/60 mt-1">
+                                        {moment(event.start).format('h:mm A')} - {moment(event.end).format('h:mm A')}
+                                      </p>
+                                      {event.location && (
+                                        <p className="text-xs text-neutral/60 mt-1">{event.location}</p>
+                                      )}
+                                      {event.cost > 0 && (
+                                        <p className="text-xs text-neutral/60 mt-1">${event.cost.toFixed(2)}</p>
+                                      )}
+                                      {event.details && (
+                                        <p className="text-xs text-neutral/70 line-clamp-2 mt-1">{event.details}</p>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+            <div className="stats shadow mt-6">
+              <div className="stat">
+                <div className="stat-title">Your Total Cost</div>
+                <div className="stat-value text-success">${getUserTotalCost().toFixed(2)}</div>
+              </div>
+              
+              <div className="stat">
+                <div className="stat-title">Trip Total Cost</div>
+                <div className="stat-value text-primary">${getTripTotalCost().toFixed(2)}</div>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -545,6 +652,8 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
         eventInfo={selectedEvent}
+        tripMembers={tripMembers}
+        currentID={currentID}
       />
 
       <TripManagementModal
@@ -573,6 +682,15 @@ function Itinerary({ setCurrentPage, theme, toggleTheme, currentUser, currentID,
         currentID={currentID}
         onVote={handleVote}
         onRemoveVote={handleRemoveVote}
+      />
+
+      <CostTrackingModal
+        isOpen={showCostModal}
+        onClose={() => setShowCostModal(false)}
+        events={events}
+        tripMembers={tripMembers}
+        currentID={currentID}
+        onMarkPaid={handleMarkPaid}
       />
     </div>
   );

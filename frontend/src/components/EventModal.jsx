@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 
-const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) => {
+const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo, tripMembers, currentID }) => {
   const [title, setTitle] = useState('');
   const [startTime, setStartTime] = useState('12:00');
   const [endTime, setEndTime] = useState('13:00');
@@ -10,6 +10,7 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
   const [location, setLocation] = useState('');
   const [cost, setCost] = useState('');
   const [displayCost, setDisplayCost] = useState('');
+  const [costAssignments, setCostAssignments] = useState({});
 
   useEffect(() => {
     if (eventInfo) {
@@ -22,6 +23,18 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
       const costValue = eventInfo.cost !== undefined ? eventInfo.cost : 0;
       setCost(costValue);
       setDisplayCost(costValue.toFixed(2));
+      
+      // Initialize cost assignments from costAssignments field
+      if (eventInfo.costAssignments) {
+        setCostAssignments(eventInfo.costAssignments);
+      } else {
+        // Default: assign to creator only
+        const defaultAssignments = {};
+        tripMembers.forEach(member => {
+          defaultAssignments[member._id] = member._id === currentID;
+        });
+        setCostAssignments(defaultAssignments);
+      }
     } else {
       setTitle('');
       setStartTime('12:00');
@@ -31,8 +44,48 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
       setLocation('');
       setCost(0);
       setDisplayCost('0.00');
+      
+      // Default: assign to creator only
+      const defaultAssignments = {};
+      tripMembers.forEach(member => {
+        defaultAssignments[member._id] = member._id === currentID;
+      });
+      setCostAssignments(defaultAssignments);
     }
-  }, [eventInfo, isOpen]);
+  }, [eventInfo, isOpen, tripMembers, currentID]);
+
+  const handleCostAssignmentToggle = (memberId) => {
+    setCostAssignments(prev => ({
+      ...prev,
+      [memberId]: !prev[memberId]
+    }));
+  };
+
+  const handleSelectAll = () => {
+    const allSelected = {};
+    tripMembers.forEach(member => {
+      allSelected[member._id] = true;
+    });
+    setCostAssignments(allSelected);
+  };
+
+  const handleDeselectAll = () => {
+    const allDeselected = {};
+    tripMembers.forEach(member => {
+      allDeselected[member._id] = false;
+    });
+    setCostAssignments(allDeselected);
+  };
+
+  const getAssignedCount = () => {
+    return Object.values(costAssignments).filter(assigned => assigned).length;
+  };
+
+  const getCostPerPerson = () => {
+    const assignedCount = getAssignedCount();
+    if (assignedCount === 0) return 0;
+    return parseFloat(cost) / assignedCount;
+  };
 
   const handleCreate = () => {
     if (!title) {
@@ -47,10 +100,22 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
       alert("Please select an event type.");
       return;
     }
+    if (getAssignedCount() === 0 && parseFloat(cost) > 0) {
+      alert("Please assign the cost to at least one person.");
+      return;
+    }
 
     const date = moment(eventInfo.start).format('YYYY-MM-DD');
     const start = moment(`${date} ${startTime}`).toDate();
     const end = moment(`${date} ${endTime}`).toDate();
+
+    // Initialize payments based on cost assignments (all start as unpaid/false)
+    const initialPayments = {};
+    Object.keys(costAssignments).forEach(memberId => {
+      if (costAssignments[memberId]) {
+        initialPayments[memberId] = false;
+      }
+    });
 
     onCreate({ 
       ...eventInfo,
@@ -60,6 +125,8 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
       type,
       location,
       cost: parseFloat(cost) || 0,
+      costAssignments,
+      payments: initialPayments,
       details
     });
   };
@@ -77,10 +144,29 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
       alert("Please select an event type.");
       return;
     }
+    if (getAssignedCount() === 0 && parseFloat(cost) > 0) {
+      alert("Please assign the cost to at least one person.");
+      return;
+    }
 
     const date = moment(eventInfo.start).format('YYYY-MM-DD');
     const start = moment(`${date} ${startTime}`).toDate();
     const end = moment(`${date} ${endTime}`).toDate();
+
+    // Update payments: add new assignees as unpaid, keep existing payment status
+    const updatedPayments = { ...eventInfo.payments };
+    Object.keys(costAssignments).forEach(memberId => {
+      if (costAssignments[memberId]) {
+        // If newly assigned, set to unpaid; otherwise keep existing status
+        if (updatedPayments[memberId] === undefined) {
+          updatedPayments[memberId] = false;
+        }
+      } else {
+        // If unassigned, remove from payments
+        delete updatedPayments[memberId];
+      }
+    });
+
     onSave({
       ...eventInfo,
       title,
@@ -89,6 +175,8 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
       type,
       location,
       cost: parseFloat(cost) || 0,
+      costAssignments,
+      payments: updatedPayments,
       details
     });
   };
@@ -96,6 +184,8 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
   if (!isOpen) return null;
 
   const eventDate = moment(eventInfo.start).format('dddd, MMMM D, YYYY');
+  const assignedCount = getAssignedCount();
+  const costPerPerson = getCostPerPerson();
 
   return (
     <dialog className="modal modal-open">
@@ -214,6 +304,62 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo }) 
             }}
           />
         </div>
+
+        {parseFloat(cost) > 0 && (
+          <div className="mt-4 p-4 bg-base-200 rounded-lg">
+            <div className="flex justify-between items-center mb-3">
+              <label className="label">
+                <span className="label-text font-semibold">Assign Cost To:</span>
+              </label>
+              <div className="flex gap-2">
+                <button 
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="btn btn-xs btn-primary"
+                >
+                  Select All
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="btn btn-xs btn-outline"
+                >
+                  Deselect All
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {tripMembers.map(member => (
+                <div key={member._id} className="form-control">
+                  <label className="label cursor-pointer justify-start gap-3">
+                    <input 
+                      type="checkbox" 
+                      className="checkbox checkbox-primary"
+                      checked={costAssignments[member._id] || false}
+                      onChange={() => handleCostAssignmentToggle(member._id)}
+                    />
+                    <span className="label-text">{member.username}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+            
+            {assignedCount > 0 && (
+              <div className="alert alert-info mt-3">
+                <div className="text-sm">
+                  <p className="font-semibold">Cost per person: ${costPerPerson.toFixed(2)}</p>
+                  <p className="text-xs mt-1">Split among {assignedCount} {assignedCount === 1 ? 'person' : 'people'}</p>
+                </div>
+              </div>
+            )}
+            
+            {assignedCount === 0 && (
+              <div className="alert alert-warning mt-3">
+                <span className="text-xs">Please select at least one person</span>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="form-control w-full mt-4">
           <label className="label">

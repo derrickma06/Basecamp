@@ -42,6 +42,7 @@ class Event(BaseModel):
     type: str
     location: str
     cost: float
+    cost_assignments: dict = {}
     details: str
     votes: list = []
     payments: dict = {}
@@ -299,6 +300,7 @@ async def create_event(event: Event):
         "type": event.type,
         "location": event.location,
         "cost": event.cost,
+        "cost_assignments": event.cost_assignments,
         "details": event.details,
         "votes": event.votes,
         "payments": event.payments
@@ -343,6 +345,7 @@ async def update_event(event_id: str, event: Event):
         "type": event.type,
         "location": event.location,
         "cost": event.cost,
+        "cost_assignments": event.cost_assignments, 
         "details": event.details,
         "votes": event.votes,
         "payments": event.payments

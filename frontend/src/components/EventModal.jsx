@@ -24,7 +24,7 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo, tr
       setCost(costValue);
       setDisplayCost(costValue.toFixed(2));
       
-      // Initialize cost assignments
+      // Initialize cost assignments from costAssignments field
       if (eventInfo.costAssignments) {
         setCostAssignments(eventInfo.costAssignments);
       } else {
@@ -61,6 +61,22 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo, tr
     }));
   };
 
+  const handleSelectAll = () => {
+    const allSelected = {};
+    tripMembers.forEach(member => {
+      allSelected[member._id] = true;
+    });
+    setCostAssignments(allSelected);
+  };
+
+  const handleDeselectAll = () => {
+    const allDeselected = {};
+    tripMembers.forEach(member => {
+      allDeselected[member._id] = false;
+    });
+    setCostAssignments(allDeselected);
+  };
+
   const getAssignedCount = () => {
     return Object.values(costAssignments).filter(assigned => assigned).length;
   };
@@ -93,6 +109,14 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo, tr
     const start = moment(`${date} ${startTime}`).toDate();
     const end = moment(`${date} ${endTime}`).toDate();
 
+    // Initialize payments based on cost assignments (all start as unpaid/false)
+    const initialPayments = {};
+    Object.keys(costAssignments).forEach(memberId => {
+      if (costAssignments[memberId]) {
+        initialPayments[memberId] = false;
+      }
+    });
+
     onCreate({ 
       ...eventInfo,
       title,
@@ -102,6 +126,7 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo, tr
       location,
       cost: parseFloat(cost) || 0,
       costAssignments,
+      payments: initialPayments,
       details
     });
   };
@@ -127,6 +152,21 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo, tr
     const date = moment(eventInfo.start).format('YYYY-MM-DD');
     const start = moment(`${date} ${startTime}`).toDate();
     const end = moment(`${date} ${endTime}`).toDate();
+
+    // Update payments: add new assignees as unpaid, keep existing payment status
+    const updatedPayments = { ...eventInfo.payments };
+    Object.keys(costAssignments).forEach(memberId => {
+      if (costAssignments[memberId]) {
+        // If newly assigned, set to unpaid; otherwise keep existing status
+        if (updatedPayments[memberId] === undefined) {
+          updatedPayments[memberId] = false;
+        }
+      } else {
+        // If unassigned, remove from payments
+        delete updatedPayments[memberId];
+      }
+    });
+
     onSave({
       ...eventInfo,
       title,
@@ -136,6 +176,7 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo, tr
       location,
       cost: parseFloat(cost) || 0,
       costAssignments,
+      payments: updatedPayments,
       details
     });
   };
@@ -266,9 +307,27 @@ const EventModal = ({ isOpen, onClose, onCreate, onSave, onDelete, eventInfo, tr
 
         {parseFloat(cost) > 0 && (
           <div className="mt-4 p-4 bg-base-200 rounded-lg">
-            <label className="label">
-              <span className="label-text font-semibold">Assign Cost To:</span>
-            </label>
+            <div className="flex justify-between items-center mb-3">
+              <label className="label">
+                <span className="label-text font-semibold">Assign Cost To:</span>
+              </label>
+              <div className="flex gap-2">
+                <button 
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="btn btn-xs btn-primary"
+                >
+                  Select All
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="btn btn-xs btn-outline"
+                >
+                  Deselect All
+                </button>
+              </div>
+            </div>
             <div className="space-y-2">
               {tripMembers.map(member => (
                 <div key={member._id} className="form-control">

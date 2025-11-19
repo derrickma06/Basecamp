@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// Fetch all logins for testing
 function Login({ setCurrentPage, theme, setCurrentID, setCurrentUser }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

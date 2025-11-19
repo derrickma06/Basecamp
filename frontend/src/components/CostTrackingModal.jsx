@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckIcon, DollarIcon } from './Icons';
+import { CheckIcon } from './Icons';
 import moment from 'moment';
 
 const CostTrackingModal = ({ isOpen, onClose, events, tripMembers, currentID, onMarkPaid }) => {

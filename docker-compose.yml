@@ -14,6 +14,6 @@ services:
   backend:
     build: ./backend
     environment:
-      - MONGO_URI=mongodb+srv://TripSync:1a2qYb9vOavPeMtw@tripsync.kl0if1g.mongodb.net/
+      - MONGO_URI=${MONGO_URI}
     ports:
       - "8000:8000"

@@ -4,6 +4,18 @@ from pymongo import MongoClient
 from pydantic import BaseModel
 from datetime import date, datetime
 import os
+import bcrypt
+
+# Password hashing utilities
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash."""
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 # Create Pydantic models for request validation
 class UserCredentials(BaseModel):
@@ -59,7 +71,9 @@ class Invitation(BaseModel):
 
 app = FastAPI()
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://TripSync:1a2qYb9vOavPeMtw@tripsync.kl0if1g.mongodb.net/")
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise ValueError("MONGO_URI environment variable is not set")
 client = MongoClient(MONGO_URI)
 logins = client["Logins"]
 users = logins["Accounts"]
@@ -155,13 +169,14 @@ async def update_password(password_data: PasswordUpdate):
         return {"success": False, "message": "User not found"}
 
     # Verify current password
-    if user["password"] != current_password:
+    if not verify_password(current_password, user["password"]):
         return {"success": False, "message": "Current password is incorrect"}
 
-    # Update the password
+    # Hash and update the password
+    hashed_password = hash_password(new_password)
     result = users.update_one(
         {"username": username},
-        {"$set": {"password": new_password}}
+        {"$set": {"password": hashed_password}}
     )
 
     if result.modified_count == 1:
@@ -180,7 +195,7 @@ async def login(credentials: LoginCredentials):
     user = users.find_one({"username": username})
 
     # Check if user exists and password is correct
-    if user and user["password"] == password:
+    if user and verify_password(password, user["password"]):
         return {"success": True, "message": "Login successful!", "id": str(user["_id"])}
     
     return {"success": False, "message": "Invalid username or password."}
@@ -205,10 +220,13 @@ async def signup(credentials: UserCredentials):
     if users.find_one({"email": email}):
         return {"success": False, "message": "Email already exists."}
 
+    # Hash the password before storing
+    hashed_password = hash_password(password)
+
     # Insert new user
     result = users.insert_one({
         "username": username,
-        "password": password,
+        "password": hashed_password,
         "first_name": first_name,
         "last_name": last_name,
         "email": email,

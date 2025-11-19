@@ -1,12 +1,12 @@
 ﻿import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import moment from 'moment';
 
 const formatDisplayDate = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  // Add one day to compensate for timezone offset
-  date.setDate(date.getDate() + 1);
-  return date.toLocaleDateString();
+  // Use moment for consistent, timezone-aware date handling
+  const date = moment(dateString);
+  return date.isValid() ? date.format('L') : '';
 };
 
 function Trips({ setCurrentPage, theme, toggleTheme, currentUser, currentID, onLogout, setCurrentTrip }) {

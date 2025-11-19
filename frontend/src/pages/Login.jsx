@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// Fetch all logins for testing
+// Login component: handles user authentication and navigation
 function Login({ setCurrentPage, theme, setCurrentID, setCurrentUser }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
